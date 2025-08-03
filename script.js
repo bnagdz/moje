@@ -1,471 +1,342 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  updateDoc,
-  deleteDoc
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
-
+// Konfiguracja Firebase (wstaw swoją konfigurację)
 const firebaseConfig = {
   apiKey: "AIzaSyAvZ2ZdDjDLisZbMOqHCbcDNK5rMsXCgy8",
   authDomain: "strona-ed4f6.firebaseapp.com",
   projectId: "strona-ed4f6",
-  storageBucket: "strona-ed4f6.firebasestorage.app",
+  storageBucket: "strona-ed4f6.appspot.com",
   messagingSenderId: "101656150028",
   appId: "1:101656150028:web:5830ca8a36c5b5250e6e29",
   measurementId: "G-EWYZQPTM5Y"
 };
 
 // Inicjalizacja Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Elementy DOM
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const loginSection = document.getElementById('login-form-section');
-    const registerSection = document.getElementById('register-form-section');
-    const authButtons = document.getElementById('auth-buttons');
-    const userPanel = document.getElementById('user-panel');
-    const adminPanel = document.getElementById('admin-panel');
-    const chatInput = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('send-btn');
-    const chatWarning = document.getElementById('chat-login-warning');
-    const messagesBox = document.getElementById('messages');
-    const avatarPreview = document.getElementById('avatar-preview');
-    const saveAvatarBtn = document.getElementById('save-avatar');
-    const avatarUrlInput = document.getElementById('avatar-url');
+// Elementy DOM
+const loginLink = document.getElementById('login-link');
+const registerLink = document.getElementById('register-link');
+const loginFormSection = document.getElementById('login-form-section');
+const registerFormSection = document.getElementById('register-form-section');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const cancelLogin = document.getElementById('cancel-login');
+const cancelRegister = document.getElementById('cancel-register');
+const authButtons = document.getElementById('auth-buttons');
 
-    let currentUser = null;  // Będzie obiektem { uid, username, email, avatar }
+const userPanel = document.getElementById('user-panel');
+const userNameDisplay = document.getElementById('user-name-display');
+const avatarPreview = document.getElementById('avatar-preview');
+const avatarUrlInput = document.getElementById('avatar-url');
+const saveAvatarBtn = document.getElementById('save-avatar');
+const logoutBtn = document.getElementById('logout-btn');
 
-    // --- FUNKCJE ---
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const messagesBox = document.getElementById('messages');
+const chatLoginWarning = document.getElementById('chat-login-warning');
 
-    async function showUserPanel(userData) {
-        // userData: { uid, username, email, avatar }
-        document.getElementById('user-name-display').textContent = userData.username;
-        avatarPreview.src = userData.avatar || 'https://via.placeholder.com/80';
-        userPanel.style.display = 'block';
-        authButtons.style.display = 'none';
-        currentUser = userData;
+const adminPanel = document.getElementById('admin-panel');
+const newsForm = document.getElementById('news-form');
+const newsContainer = document.getElementById('news');
+const chatAdminList = document.getElementById('chat-admin-list');
+const closeAdminBtn = document.getElementById('close-admin');
 
-        if(userData.username === 'admin'){
-            adminPanel.style.display = 'block';
-            loadAdminChatMessages();
-            loadAdminNews();
-        } else {
-            adminPanel.style.display = 'none';
-        }
-        enableChat();
-        loadMessages();
-        loadNews();
+// Pomocnicze zmienne
+let currentUserData = null;
+let unsubscribeMessages = null;
+let unsubscribeNews = null;
+
+// POKAŻ / UKRYJ formularze logowania/rejestracji
+loginLink.onclick = () => {
+  loginFormSection.style.display = 'block';
+  registerFormSection.style.display = 'none';
+};
+registerLink.onclick = () => {
+  registerFormSection.style.display = 'block';
+  loginFormSection.style.display = 'none';
+};
+cancelLogin.onclick = () => {
+  loginFormSection.style.display = 'none';
+  loginForm.reset();
+};
+cancelRegister.onclick = () => {
+  registerFormSection.style.display = 'none';
+  registerForm.reset();
+};
+
+// REJESTRACJA
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('register-username').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const password = document.getElementById('register-password').value;
+
+  if (!username || !email || !password) {
+    alert('Wypełnij wszystkie pola!');
+    return;
+  }
+
+  try {
+    // Sprawdź, czy nick już istnieje
+    const nickQuery = await db.collection('users').where('username', '==', username).get();
+    if (!nickQuery.empty) {
+      alert('Nazwa użytkownika jest już zajęta!');
+      return;
     }
 
-    function enableChat() {
-        chatInput.disabled = false;
-        sendBtn.disabled = false;
-        chatWarning.style.display = 'none';
-    }
+    // Utwórz konto Firebase Auth
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
 
-    function disableChat() {
-        chatInput.disabled = true;
-        sendBtn.disabled = true;
-        chatWarning.style.display = 'block';
-    }
-
-    function formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        return date.toLocaleString('pl-PL');
-    }
-
-    // Pobierz avatar użytkownika z Firestore po username
-    async function getUserAvatar(username) {
-        const q = query(collection(db, "users"));
-        const querySnapshot = await getDocs(q);
-        let avatar = null;
-        querySnapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            if(data.username === username){
-                avatar = data.avatar || 'https://via.placeholder.com/32';
-            }
-        });
-        return avatar || 'https://via.placeholder.com/32';
-    }
-
-    // --- REJESTRACJA ---
-    registerForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const username = document.getElementById('register-username').value.trim();
-        const email = document.getElementById('register-email').value.trim();
-        const password = document.getElementById('register-password').value;
-
-        if (!username || !email || !password) {
-            alert('Proszę wypełnić wszystkie pola.');
-            return;
-        }
-
-        // Sprawdź unikalność username
-        const usersSnap = await getDocs(collection(db, "users"));
-        if(usersSnap.docs.some(d => d.data().username === username)){
-            alert('Taka nazwa użytkownika już istnieje.');
-            return;
-        }
-
-        // Sprawdź unikalność email - Firebase Auth i tak nie pozwoli zduplikować email
-        try {
-            // Tworzymy użytkownika Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const uid = userCredential.user.uid;
-
-            // Zapisz dodatkowe dane do Firestore
-            await setDoc(doc(db, "users", uid), {
-                username,
-                email,
-                avatar: ''
-            });
-
-            alert('Rejestracja zakończona sukcesem! Możesz się teraz zalogować.');
-            registerSection.style.display = 'none';
-            loginSection.style.display = 'block';
-
-        } catch (error) {
-            alert('Błąd rejestracji: ' + error.message);
-        }
+    // Zapisz dodatkowe dane w Firestore
+    await db.collection('users').doc(user.uid).set({
+      username: username,
+      avatarUrl: '',
+      email: email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    // --- LOGOWANIE ---
-    loginForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-
-        if (!email || !password) {
-            alert('Proszę wypełnić wszystkie pola.');
-            return;
-        }
-
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const uid = userCredential.user.uid;
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (!userDoc.exists()) {
-                alert('Brak danych użytkownika w bazie!');
-                return;
-            }
-            const userData = userDoc.data();
-            currentUser = { uid, ...userData };
-            localStorage.setItem('currentUserUid', uid);  // Do odświeżania strony
-            showUserPanel(currentUser);
-            loginSection.style.display = 'none';
-        } catch (error) {
-            alert('Błąd logowania: ' + error.message);
-        }
-    });
-
-    // --- WYLOGOWANIE ---
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-        await signOut(auth);
-        localStorage.removeItem('currentUserUid');
-        location.reload();
-    });
-
-    // --- AUTOLOGOWANIE PRZY ODŚWIEŻENIU STRONY ---
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            // Pobierz dane z Firestore
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                currentUser = { uid: user.uid, ...userDoc.data() };
-                showUserPanel(currentUser);
-                loginSection.style.display = 'none';
-                registerSection.style.display = 'none';
-            }
-        } else {
-            // Nie zalogowany
-            currentUser = null;
-            userPanel.style.display = 'none';
-            authButtons.style.display = 'block';
-            adminPanel.style.display = 'none';
-            disableChat();
-        }
-    });
-
-    // --- ZAPIS I WYŚWIETLANIE AVATARA ---
-    saveAvatarBtn?.addEventListener('click', async () => {
-        if (!currentUser) return;
-        const url = avatarUrlInput.value.trim();
-        if (!url) return;
-        try {
-            await updateDoc(doc(db, "users", currentUser.uid), { avatar: url });
-            currentUser.avatar = url;
-            avatarPreview.src = url;
-            avatarUrlInput.value = '';
-        } catch (error) {
-            alert('Błąd zapisu avatara: ' + error.message);
-        }
-    });
-
-    // --- CZAT ---
-
-    // Załaduj wiadomości czatu z Firestore i wyświetl
-    async function loadMessages() {
-        messagesBox.innerHTML = '';
-        const q = query(collection(db, "chatMessages"), orderBy("time"));
-        const querySnapshot = await getDocs(q);
-
-        for (const docSnap of querySnapshot.docs) {
-            const msg = docSnap.data();
-            const row = document.createElement('div');
-
-            const message = document.createElement('div');
-            message.className = 'chat-message';
-
-            const avatar = document.createElement('img');
-            avatar.className = 'avatar';
-            avatar.src = await getUserAvatar(msg.user);
-
-            const textNode = document.createElement('span');
-            textNode.textContent = `${msg.user}: ${msg.text}`;
-
-            message.appendChild(avatar);
-            message.appendChild(textNode);
-
-            const meta = document.createElement('div');
-            meta.className = 'chat-meta';
-            meta.textContent = `Dodano: ${formatTimestamp(msg.time)}`;
-
-            row.appendChild(message);
-            row.appendChild(meta);
-            messagesBox.appendChild(row);
-        }
-        messagesBox.scrollTop = messagesBox.scrollHeight;
-    }
-
-    sendBtn.addEventListener('click', async () => {
-        if (!currentUser) return;
-        const text = chatInput.value.trim();
-        if (!text) return;
-
-        try {
-            await addDoc(collection(db, "chatMessages"), {
-                user: currentUser.username,
-                text,
-                time: Date.now()
-            });
-            chatInput.value = '';
-            loadMessages();
-            if(currentUser.username === 'admin'){
-                loadAdminChatMessages();
-            }
-        } catch (error) {
-            alert('Błąd wysłania wiadomości: ' + error.message);
-        }
-    });
-
-    // --- PANEL ADMINA: EDYCJA I USUWANIE WIADOMOŚCI CZATU ---
-
-    async function loadAdminChatMessages() {
-        const list = document.getElementById('chat-admin-list');
-        if (!list) return;
-        list.innerHTML = '';
-
-        const q = query(collection(db, "chatMessages"), orderBy("time"));
-        const querySnapshot = await getDocs(q);
-
-        for (const docSnap of querySnapshot.docs) {
-            const msg = docSnap.data();
-            const row = document.createElement('div');
-            row.className = 'chat-admin-row';
-            row.dataset.docId = docSnap.id;
-
-            const textInput = document.createElement('input');
-            textInput.type = 'text';
-            textInput.value = msg.text;
-            textInput.className = 'chat-admin-input';
-
-            const userSpan = document.createElement('span');
-            userSpan.textContent = msg.user;
-
-            const timeSpan = document.createElement('span');
-            timeSpan.textContent = formatTimestamp(msg.time);
-            timeSpan.className = 'chat-admin-time';
-
-            const saveBtn = document.createElement('button');
-            saveBtn.textContent = 'Zapisz';
-            saveBtn.addEventListener('click', async () => {
-                try {
-                    await updateDoc(doc(db, "chatMessages", docSnap.id), {
-                        text: textInput.value
-                    });
-                    alert('Wiadomość zaktualizowana');
-                    loadMessages();
-                    loadAdminChatMessages();
-                } catch (error) {
-                    alert('Błąd zapisu wiadomości: ' + error.message);
-                }
-            });
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Usuń';
-            deleteBtn.addEventListener('click', async () => {
-                if(confirm('Na pewno usunąć tę wiadomość?')){
-                    try {
-                        await deleteDoc(doc(db, "chatMessages", docSnap.id));
-                        loadMessages();
-                        loadAdminChatMessages();
-                    } catch (error) {
-                        alert('Błąd usuwania wiadomości: ' + error.message);
-                    }
-                }
-            });
-
-            row.appendChild(userSpan);
-            row.appendChild(timeSpan);
-            row.appendChild(textInput);
-            row.appendChild(saveBtn);
-            row.appendChild(deleteBtn);
-
-            list.appendChild(row);
-        }
-    }
-
-    // --- NEWSY ---
-
-    const newsList = document.getElementById('news-list');
-    const adminNewsList = document.getElementById('news-admin-list');
-    const newsInput = document.getElementById('news-input');
-    const newsAuthorInput = document.getElementById('news-author-input');
-    const newsDateInput = document.getElementById('news-date-input');
-    const newsTimeInput = document.getElementById('news-time-input');
-    const addNewsBtn = document.getElementById('add-news-btn');
-
-    // Załaduj newsy z Firestore i wyświetl
-    async function loadNews() {
-        if(!newsList) return;
-        newsList.innerHTML = '';
-        const q = query(collection(db, "news"), orderBy("time", "desc"));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach(docSnap => {
-            const n = docSnap.data();
-            const row = document.createElement('div');
-            row.className = 'news-row';
-            row.textContent = `[${formatTimestamp(n.time)}] ${n.author}: ${n.text}`;
-            newsList.appendChild(row);
-        });
-    }
-
-    // Załaduj newsy do panelu admina
-    async function loadAdminNews() {
-        if(!adminNewsList) return;
-        adminNewsList.innerHTML = '';
-        const q = query(collection(db, "news"), orderBy("time", "desc"));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach(docSnap => {
-            const n = docSnap.data();
-            const row = document.createElement('div');
-            row.className = 'news-admin-row';
-            row.dataset.docId = docSnap.id;
-
-            const textInput = document.createElement('textarea');
-            textInput.value = n.text;
-            textInput.className = 'news-admin-textarea';
-
-            const authorSpan = document.createElement('span');
-            authorSpan.textContent = n.author;
-
-            const timeSpan = document.createElement('span');
-            timeSpan.textContent = formatTimestamp(n.time);
-            timeSpan.className = 'news-admin-time';
-
-            const saveBtn = document.createElement('button');
-            saveBtn.textContent = 'Zapisz';
-            saveBtn.addEventListener('click', async () => {
-                try {
-                    await updateDoc(doc(db, "news", docSnap.id), {
-                        text: textInput.value
-                    });
-                    alert('Newsy zaktualizowane');
-                    loadNews();
-                    loadAdminNews();
-                } catch (error) {
-                    alert('Błąd zapisu newsów: ' + error.message);
-                }
-            });
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Usuń';
-            deleteBtn.addEventListener('click', async () => {
-                if(confirm('Na pewno usunąć ten news?')){
-                    try {
-                        await deleteDoc(doc(db, "news", docSnap.id));
-                        loadNews();
-                        loadAdminNews();
-                    } catch (error) {
-                        alert('Błąd usuwania newsów: ' + error.message);
-                    }
-                }
-            });
-
-            row.appendChild(authorSpan);
-            row.appendChild(timeSpan);
-            row.appendChild(textInput);
-            row.appendChild(saveBtn);
-            row.appendChild(deleteBtn);
-
-            adminNewsList.appendChild(row);
-        });
-    }
-
-    // Dodaj news (tylko admin)
-    addNewsBtn?.addEventListener('click', async () => {
-        if(!currentUser || currentUser.username !== 'admin') {
-            alert('Brak uprawnień');
-            return;
-        }
-        const text = newsInput.value.trim();
-        if(!text) return;
-
-        try {
-            await addDoc(collection(db, "news"), {
-                author: currentUser.username,
-                text,
-                time: Date.now()
-            });
-            newsInput.value = '';
-            loadNews();
-            loadAdminNews();
-        } catch (error) {
-            alert('Błąd dodawania newsa: ' + error.message);
-        }
-    });
-
-    // --- POKAŻ / UKRYJ FORMULARZE LOGOWANIA I REJESTRACJI ---
-    document.getElementById('login-link')?.addEventListener('click', () => {
-        loginSection.style.display = 'block';
-        registerSection.style.display = 'none';
-    });
-    document.getElementById('register-link')?.addEventListener('click', () => {
-        registerSection.style.display = 'block';
-        loginSection.style.display = 'none';
-    });
-
-    // --- Inicjuj ---
-    disableChat();
+    alert('Rejestracja przebiegła pomyślnie!');
+    registerForm.reset();
+    registerFormSection.style.display = 'none';
+  } catch (error) {
+    alert('Błąd rejestracji: ' + error.message);
+  }
 });
+
+// LOGOWANIE
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password) {
+    alert('Wypełnij wszystkie pola!');
+    return;
+  }
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    loginForm.reset();
+    loginFormSection.style.display = 'none';
+  } catch (error) {
+    alert('Błąd logowania: ' + error.message);
+  }
+});
+
+// WYLOGOWANIE
+logoutBtn.addEventListener('click', () => {
+  auth.signOut();
+});
+
+// OBSŁUGA AWATARA - zapisz w Firestore
+saveAvatarBtn.addEventListener('click', async () => {
+  if (!currentUserData) return alert('Brak danych użytkownika.');
+
+  const newAvatarUrl = avatarUrlInput.value.trim();
+  try {
+    await db.collection('users').doc(auth.currentUser.uid).update({
+      avatarUrl: newAvatarUrl
+    });
+    avatarPreview.src = newAvatarUrl || '';
+    alert('Awatar został zapisany.');
+  } catch (error) {
+    alert('Błąd podczas zapisu awatara: ' + error.message);
+  }
+});
+
+// OBSŁUGA CZATU
+sendBtn.addEventListener('click', sendMessage);
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  if (!currentUserData) {
+    alert('Musisz być zalogowany, aby pisać na czacie.');
+    return;
+  }
+
+  try {
+    await db.collection('chatMessages').add({
+      text,
+      uid: auth.currentUser.uid,
+      username: currentUserData.username,
+      avatarUrl: currentUserData.avatarUrl || '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    chatInput.value = '';
+  } catch (error) {
+    alert('Błąd podczas wysyłania wiadomości: ' + error.message);
+  }
+}
+
+// WYŚWIETLANIE WIADOMOŚCI Z CZATU
+function startChatListener() {
+  if (unsubscribeMessages) unsubscribeMessages();
+
+  unsubscribeMessages = db.collection('chatMessages')
+    .orderBy('createdAt', 'asc')
+    .limit(100)
+    .onSnapshot(snapshot => {
+      messagesBox.innerHTML = '';
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const dateStr = msg.createdAt ? msg.createdAt.toDate().toLocaleString() : '';
+        const li = document.createElement('div');
+        li.classList.add('chat-message');
+        li.innerHTML = `
+          <img src="${msg.avatarUrl || 'https://via.placeholder.com/30'}" alt="Avatar" class="chat-avatar"/>
+          <b>${msg.username}</b> <small>${dateStr}</small><br/>
+          <span>${escapeHtml(msg.text)}</span>
+        `;
+
+        // Jeśli admin, dodaj przycisk usuwania
+        if (currentUserData && currentUserData.username === 'admin') {
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Usuń';
+          delBtn.style.marginLeft = '10px';
+          delBtn.onclick = () => deleteChatMessage(doc.id);
+          li.appendChild(delBtn);
+        }
+
+        messagesBox.appendChild(li);
+      });
+
+      // Scroll do dołu czatu
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    });
+}
+
+// USUWANIE WIADOMOŚCI Z CZATU (admin)
+async function deleteChatMessage(id) {
+  if (!confirm('Na pewno chcesz usunąć tę wiadomość?')) return;
+  try {
+    await db.collection('chatMessages').doc(id).delete();
+  } catch (error) {
+    alert('Błąd usuwania wiadomości: ' + error.message);
+  }
+}
+
+// WYŚWIETLANIE NEWSÓW
+function startNewsListener() {
+  if (unsubscribeNews) unsubscribeNews();
+
+  unsubscribeNews = db.collection('news')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snapshot => {
+      newsContainer.innerHTML = '';
+      snapshot.forEach(doc => {
+        const news = doc.data();
+        const dateStr = news.createdAt ? news.createdAt.toDate().toLocaleString() : '';
+        const div = document.createElement('div');
+        div.classList.add('news-item');
+        div.innerHTML = `
+          <h3>${escapeHtml(news.title)}</h3>
+          <small>Autor: ${escapeHtml(news.author)} | ${dateStr}</small>
+          <p>${escapeHtml(news.content)}</p>
+        `;
+        newsContainer.appendChild(div);
+      });
+    });
+}
+
+// PANEL ADMINA - dodawanie newsów
+newsForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (!currentUserData || currentUserData.username !== 'admin') {
+    alert('Brak dostępu do panelu administracyjnego.');
+    return;
+  }
+
+  const title = document.getElementById('news-title').value.trim();
+  const content = document.getElementById('news-content').value.trim();
+  if (!title || !content) {
+    alert('Wypełnij wszystkie pola.');
+    return;
+  }
+
+  try {
+    await db.collection('news').add({
+      title,
+      content,
+      author: currentUserData.username,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    newsForm.reset();
+    alert('Wiadomość została dodana.');
+  } catch (error) {
+    alert('Błąd dodawania wiadomości: ' + error.message);
+  }
+});
+
+// OBSŁUGA PANELU ADMINA (listowanie wiadomości z czatu)
+function startAdminChatListListener() {
+  chatAdminList.innerHTML = '';
+
+  db.collection('chatMessages')
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .onSnapshot(snapshot => {
+      chatAdminList.innerHTML = '';
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const li = document.createElement('li');
+        li.textContent = `${msg.username}: ${msg.text}`;
+        // Przycisk usuwania
+        if (currentUserData && currentUserData.username === 'admin') {
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Usuń';
+          delBtn.onclick = () => deleteChatMessage(doc.id);
+          li.appendChild(delBtn);
+        }
+        chatAdminList.appendChild(li);
+      });
+    });
+}
+
+// WYŚWIETLANIE PANELU ADMINA I USERA
+function updateUI(user, userData) {
+  if (user) {
+    authButtons.style.display = 'none';
+    userPanel.style.display = 'block';
+    userNameDisplay.textContent = userData.username;
+    avatarPreview.src = userData.avatarUrl || '';
+    avatarUrlInput.value = userData.avatarUrl || '';
+
+    chatInput.disabled = false;
+    sendBtn.disabled = false;
+    chatLoginWarning.style.display = 'none';
+
+    // Jeśli admin, pokaż panel admina
+    if (userData.username === 'admin') {
+      adminPanel.style.display = 'block';
+      startAdminChatListListener();
+    } else {
+      adminPanel.style.display = 'none';
+    }
+
+  } else {
+    authButtons.style.display = 'block';
+    loginFormSection.style.display = 'none';
+    registerFormSection.style.display = 'none';
+
+    userPanel.style.display = 'none';
+    adminPanel.style.display = 'none';
+
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+    chatLoginWarning.style.display = 'block';
+  }
+}
+
+// ODSŁUCHIWANIE ZMIANY STANU AUTH
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    // Pobierz dane użytkownika
