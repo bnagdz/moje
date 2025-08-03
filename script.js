@@ -275,4 +275,14 @@ function loadChatMessagesAdmin() {
           }
         }
       });
-      li
+      li.appendChild(delBtn);
+      chatAdminList.appendChild(li);
+    });
+  });
+}
+
+// Zamknięcie panelu admina
+closeAdminBtn.addEventListener('click', () => {
+  adminPanel.style.display = 'none';
+});
+
