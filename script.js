@@ -1,5 +1,3 @@
-// script.js
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import {
   getAuth,
@@ -13,7 +11,13 @@ import {
   doc,
   setDoc,
   getDoc,
-  updateDoc
+  updateDoc,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 // --- Konfiguracja Firebase ---
@@ -27,11 +31,14 @@ const firebaseConfig = {
   measurementId: "G-EWYZQPTM5Y"
 };
 
+// Inicjalizacja Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  // ELEMENTY HTML
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
 
@@ -60,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelLoginBtn = document.getElementById('cancel-login');
   const cancelRegisterBtn = document.getElementById('cancel-register');
 
+  // Pokazywanie/ukrywanie formularzy
   loginLink.addEventListener('click', () => {
     loginFormSection.style.display = 'block';
     registerFormSection.style.display = 'none';
@@ -78,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     registerFormSection.style.display = 'none';
   });
 
+  // Rejestracja
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -94,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Zapisz nick i pusty avatar w Firestore
       await setDoc(doc(db, 'users', user.uid), {
         username: username,
         avatar: ''
@@ -103,11 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
       registerForm.reset();
       registerFormSection.style.display = 'none';
     } catch (error) {
-      console.error('Błąd rejestracji:', error);
       alert('Błąd rejestracji: ' + error.message);
     }
   });
 
+  // Logowanie
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -120,42 +130,91 @@ document.addEventListener('DOMContentLoaded', () => {
       loginForm.reset();
       loginFormSection.style.display = 'none';
     } catch (error) {
-      console.error('Błąd logowania:', error);
       alert('Błąd logowania: ' + error.message);
     }
   });
 
+  // Wylogowanie
   logoutBtn.addEventListener('click', async () => {
     await signOut(auth);
   });
 
+  // Funkcja do renderowania wiadomości czatu
+  function renderMessages(messages) {
+    const chatMessagesContainer = document.getElementById('chat-messages');
+    chatMessagesContainer.innerHTML = '';
+
+    messages.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = 'chat-message';
+
+      const avatar = document.createElement('img');
+      avatar.src = msg.avatar || 'default-avatar.png';
+      avatar.alt = 'Avatar';
+      avatar.className = 'chat-avatar';
+
+      const usernameSpan = document.createElement('span');
+      usernameSpan.textContent = msg.username || 'Anonim';
+      usernameSpan.className = 'chat-username';
+
+      const textSpan = document.createElement('span');
+      textSpan.textContent = msg.text;
+      textSpan.className = 'chat-text';
+
+      const timeSpan = document.createElement('span');
+      timeSpan.textContent = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleString() : '';
+      timeSpan.className = 'chat-time';
+
+      div.appendChild(avatar);
+      div.appendChild(usernameSpan);
+      div.appendChild(textSpan);
+      div.appendChild(timeSpan);
+
+      chatMessagesContainer.appendChild(div);
+    });
+
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+  }
+
+  let unsubscribeChat = null;
+
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
+      // Pobierz dane użytkownika z Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.exists() ? userDoc.data() : {};
 
-        userNameDisplay.textContent = userData.username || 'User';
-        avatarPreview.src = userData.avatar || '';
-        avatarUrlInput.value = userData.avatar || '';
+      userNameDisplay.textContent = userData.username || 'User';
+      avatarPreview.src = userData.avatar || '';
+      avatarUrlInput.value = userData.avatar || '';
 
-        userPanel.style.display = 'block';
-        chatInput.disabled = false;
-        sendBtn.disabled = false;
-        chatLoginWarning.style.display = 'none';
+      userPanel.style.display = 'block';
+      chatInput.disabled = false;
+      sendBtn.disabled = false;
+      chatLoginWarning.style.display = 'none';
 
-        loginFormSection.style.display = 'none';
-        registerFormSection.style.display = 'none';
-        document.getElementById('auth-buttons').style.display = 'none';
+      loginFormSection.style.display = 'none';
+      registerFormSection.style.display = 'none';
+      document.getElementById('auth-buttons').style.display = 'none';
 
-        if (user.email === 'bnagdz@o2.pl') {
-          document.getElementById('admin-panel').style.display = 'block';
-        } else {
-          document.getElementById('admin-panel').style.display = 'none';
-        }
-      } catch (error) {
-        console.error('Błąd pobierania danych użytkownika:', error);
+      // Panel admina dla bnagdz@o2.pl i hasła Flak1234 — ale hasło nie trzymamy tu, więc rozpoznajemy po emailu
+      if (user.email && user.email.toLowerCase() === 'bnagdz@o2.pl') {
+        document.getElementById('admin-panel').style.display = 'block';
+      } else {
+        document.getElementById('admin-panel').style.display = 'none';
       }
+
+      // Słuchanie czatu na żywo
+      const chatRef = collection(db, 'chatMessages');
+      const q = query(chatRef, orderBy('timestamp', 'asc'));
+
+      if (unsubscribeChat) unsubscribeChat();
+      unsubscribeChat = onSnapshot(q, (querySnapshot) => {
+        const messages = [];
+        querySnapshot.forEach(doc => messages.push(doc.data()));
+        renderMessages(messages);
+      });
+
     } else {
       userPanel.style.display = 'none';
       chatInput.disabled = true;
@@ -166,9 +225,18 @@ document.addEventListener('DOMContentLoaded', () => {
       userNameDisplay.textContent = '';
       avatarPreview.src = '';
       avatarUrlInput.value = '';
+
+      if (unsubscribeChat) {
+        unsubscribeChat();
+        unsubscribeChat = null;
+      }
+
+      const chatMessagesContainer = document.getElementById('chat-messages');
+      if(chatMessagesContainer) chatMessagesContainer.innerHTML = '';
     }
   });
 
+  // Zapis awatara
   saveAvatarBtn.addEventListener('click', async () => {
     const user = auth.currentUser;
     if (!user) return alert('Musisz być zalogowany!');
@@ -181,8 +249,44 @@ document.addEventListener('DOMContentLoaded', () => {
       avatarPreview.src = newAvatarUrl;
       alert('Awatar zapisany.');
     } catch (error) {
-      console.error('Błąd zapisu awatara:', error);
       alert('Błąd zapisu awatara: ' + error.message);
+    }
+  });
+
+  // Wysyłanie wiadomości czatu
+  const sendMessage = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      alert('Musisz być zalogowany, aby pisać na czacie!');
+      return;
+    }
+
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userData = userDoc.exists() ? userDoc.data() : {};
+
+    try {
+      await addDoc(collection(db, 'chatMessages'), {
+        uid: user.uid,
+        username: userData.username || 'Anonim',
+        avatar: userData.avatar || '',
+        text: text,
+        timestamp: serverTimestamp()
+      });
+      chatInput.value = '';
+    } catch (error) {
+      alert('Błąd wysyłania wiadomości: ' + error.message);
+    }
+  };
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   });
 
