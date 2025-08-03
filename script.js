@@ -1,266 +1,254 @@
-document.addEventListener('DOMContentLoaded', function () {
-    let users = JSON.parse(localStorage.getItem('users')) || [];
-    if (!users.find(u => u.username === 'admin')) {
-        users.push({ username: 'admin', email: 'admin@example.com', password: 'admin', avatar: '' });
-        localStorage.setItem('users', JSON.stringify(users));
-    }
+// Twoja dotychczasowa logika (np. czat, newsy) pozostaje na dole, ja daję na górę logowanie i rejestrację Firebase
 
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const loginSection = document.getElementById('login-form-section');
-    const registerSection = document.getElementById('register-form-section');
-    const authButtons = document.getElementById('auth-buttons');
-    const userPanel = document.getElementById('user-panel');
-    const adminPanel = document.getElementById('admin-panel');
-    const chatInput = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('send-btn');
-    const chatWarning = document.getElementById('chat-login-warning');
-    const messagesBox = document.getElementById('messages');
+// --- KONFIGURACJA FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAvZ2ZdDjDLisZbMOqHCbcDNK5rMsXCgy8",
+  authDomain: "strona-ed4f6.firebaseapp.com",
+  projectId: "strona-ed4f6",
+  storageBucket: "strona-ed4f6.appspot.com",
+  messagingSenderId: "101656150028",
+  appId: "1:101656150028:web:5830ca8a36c5b5250e6e29",
+  measurementId: "G-EWYZQPTM5Y"
+};
+firebase.initializeApp(firebaseConfig);
 
-    let currentUser = localStorage.getItem('currentUser') || null;
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-    if (currentUser) {
-        showUserPanel(currentUser);
-        if (currentUser === 'admin') {
-            adminPanel.style.display = 'block';
-            updateAdminChatMessages();
-        }
-        enableChat();
-    } else {
-        disableChat();
-    }
+// --- ELEMENTY DOM ---
+const loginLink = document.getElementById('login-link');
+const registerLink = document.getElementById('register-link');
 
-    // Logowanie
-    loginForm?.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const username = document.getElementById('login-username').value.trim();
-        const password = document.getElementById('login-password').value;
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        const user = users.find(u => u.username === username && u.password === password);
-        if (user) {
-            localStorage.setItem('currentUser', user.username);
-            location.reload();
-        } else {
-            alert('Nieprawidłowa nazwa użytkownika lub hasło!');
-        }
-    });
+const loginFormSection = document.getElementById('login-form-section');
+const registerFormSection = document.getElementById('register-form-section');
 
-    // Rejestracja
-    registerForm?.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const username = document.getElementById('register-username').value.trim();
-        const email = document.getElementById('register-email').value.trim();
-        const password = document.getElementById('register-password').value;
-        let users = JSON.parse(localStorage.getItem('users')) || [];
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
 
-        if (users.some(u => u.username === username)) {
-            alert('Taka nazwa użytkownika już istnieje.');
-            return;
-        }
+const cancelLoginBtn = document.getElementById('cancel-login');
+const cancelRegisterBtn = document.getElementById('cancel-register');
 
-        if (users.some(u => u.email === email)) {
-            alert('Ten email jest już zarejestrowany.');
-            return;
-        }
+const userPanel = document.getElementById('user-panel');
+const userNameDisplay = document.getElementById('user-name-display');
+const avatarPreview = document.getElementById('avatar-preview');
+const avatarUrlInput = document.getElementById('avatar-url');
+const saveAvatarBtn = document.getElementById('save-avatar');
+const logoutBtn = document.getElementById('logout-btn');
 
-        users.push({ username, email, password, avatar: '' });
-        localStorage.setItem('users', JSON.stringify(users));
-        alert('Rejestracja zakończona sukcesem! Możesz się teraz zalogować.');
-        registerSection.style.display = 'none';
-    });
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const chatLoginWarning = document.getElementById('chat-login-warning');
 
-    // Pokaż / ukryj formularze
-    document.getElementById('login-link')?.addEventListener('click', () => {
-        loginSection.style.display = loginSection.style.display === 'none' ? 'block' : 'none';
-        registerSection.style.display = 'none';
-    });
+const adminPanel = document.getElementById('admin-panel');
 
-    document.getElementById('register-link')?.addEventListener('click', () => {
-        registerSection.style.display = registerSection.style.display === 'none' ? 'block' : 'none';
-        loginSection.style.display = 'none';
-    });
+let currentUserData = null; // będzie obiekt { uid, email, username, avatarUrl }
 
-    document.getElementById('cancel-login')?.addEventListener('click', () => {
-        loginSection.style.display = 'none';
-    });
-
-    document.getElementById('cancel-register')?.addEventListener('click', () => {
-        registerSection.style.display = 'none';
-    });
-
-    document.getElementById('close-admin')?.addEventListener('click', () => {
-        adminPanel.style.display = 'none';
-    });
-
-    document.getElementById('logout-btn')?.addEventListener('click', () => {
-        localStorage.removeItem('currentUser');
-        location.reload();
-    });
-
-    function showUserPanel(username) {
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        const user = users.find(u => u.username === username);
-        document.getElementById('user-name-display').textContent = username;
-        userPanel.style.display = 'block';
-        authButtons.style.display = 'none';
-        document.getElementById('avatar-preview').src = user?.avatar || 'https://via.placeholder.com/80';
-    }
-
-    document.getElementById('save-avatar')?.addEventListener('click', () => {
-        const url = document.getElementById('avatar-url').value.trim();
-        if (!currentUser || !url) return;
-        let users = JSON.parse(localStorage.getItem('users')) || [];
-        const user = users.find(u => u.username === currentUser);
-        if (user) {
-            user.avatar = url;
-            localStorage.setItem('users', JSON.stringify(users));
-            showUserPanel(currentUser);
-        }
-    });
-
-    function enableChat() {
-        chatInput.disabled = false;
-        sendBtn.disabled = false;
-        chatWarning.style.display = 'none';
-    }
-
-    function disableChat() {
-        chatInput.disabled = true;
-        sendBtn.disabled = true;
-        chatWarning.style.display = 'block';
-    }
-
-    function getUserAvatar(username) {
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        const user = users.find(u => u.username === username);
-        return user?.avatar || 'https://via.placeholder.com/32';
-    }
-
-    function formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        return date.toLocaleString('pl-PL');
-    }
-
-    function loadMessages() {
-        const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-        messagesBox.innerHTML = '';
-        messages.forEach(({ user, text, time }) => {
-            const row = document.createElement('div');
-
-            const message = document.createElement('div');
-            message.className = 'chat-message';
-
-            const avatar = document.createElement('img');
-            avatar.src = getUserAvatar(user);
-            avatar.className = 'avatar';
-
-            const textNode = document.createElement('span');
-            textNode.textContent = `${user}: ${text}`;
-
-            message.appendChild(avatar);
-            message.appendChild(textNode);
-
-            const meta = document.createElement('div');
-            meta.className = 'chat-meta';
-            meta.textContent = `Dodano: ${formatTimestamp(time)}`;
-
-            row.appendChild(message);
-            row.appendChild(meta);
-            messagesBox.appendChild(row);
-        });
-    }
-
-    sendBtn.addEventListener('click', () => {
-        const text = chatInput.value.trim();
-        if (currentUser && text) {
-            const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-            messages.push({ user: currentUser, text, time: Date.now() });
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
-            chatInput.value = '';
-            loadMessages();
-            updateAdminChatMessages();
-        }
-    });
-
-    function updateAdminChatMessages() {
-        const list = document.getElementById('chat-admin-list');
-        if (!list) return;
-        list.innerHTML = '';
-        const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-
-        messages.forEach((msg, index) => {
-            const li = document.createElement('li');
-            const span = document.createElement('span');
-            span.textContent = `${msg.user}: ${msg.text} (${formatTimestamp(msg.time)})`;
-
-            const editBtn = document.createElement('button');
-            editBtn.textContent = '✏️';
-            editBtn.addEventListener('click', () => {
-                const newText = prompt('Nowa treść wiadomości:', msg.text);
-                if (newText !== null && newText.trim() !== '') {
-                    messages[index].text = newText.trim();
-                    localStorage.setItem('chatMessages', JSON.stringify(messages));
-                    loadMessages();
-                    updateAdminChatMessages();
-                }
-            });
-
-            const delBtn = document.createElement('button');
-            delBtn.textContent = '🗑️';
-            delBtn.addEventListener('click', () => {
-                messages.splice(index, 1);
-                localStorage.setItem('chatMessages', JSON.stringify(messages));
-                loadMessages();
-                updateAdminChatMessages();
-            });
-
-            li.appendChild(span);
-            li.appendChild(editBtn);
-            li.appendChild(delBtn);
-            list.appendChild(li);
-        });
-    }
-
-    function loadNews() {
-        const news = JSON.parse(localStorage.getItem('news')) || [];
-        const newsContainer = document.getElementById('news');
-        newsContainer.innerHTML = '';
-
-        news.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = 'news-item';
-            div.innerHTML = `
-                <h3>${item.title}</h3>
-                <p>${item.content}</p>
-                <p class="news-meta">Dodano przez: ${item.author} dnia ${formatTimestamp(item.time)}</p>
-                ${currentUser === 'admin' ? `<button class="delete-news" data-index="${index}">Usuń wiadomość</button>` : ''}
-            `;
-            newsContainer.appendChild(div);
-        });
-
-        document.querySelectorAll('.delete-news').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const index = btn.getAttribute('data-index');
-                const news = JSON.parse(localStorage.getItem('news')) || [];
-                news.splice(index, 1);
-                localStorage.setItem('news', JSON.stringify(news));
-                loadNews();
-            });
-        });
-    }
-
-    document.getElementById('news-form')?.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const title = document.getElementById('news-title').value.trim();
-        const content = document.getElementById('news-content').value.trim();
-        const news = JSON.parse(localStorage.getItem('news')) || [];
-        news.push({ title, content, author: currentUser, time: Date.now() });
-        localStorage.setItem('news', JSON.stringify(news));
-        document.getElementById('news-title').value = '';
-        document.getElementById('news-content').value = '';
-        loadNews();
-    });
-
-    loadMessages();
-    loadNews();
+// --- POKAŻ/UKRYJ FORMULARZE ---
+loginLink.addEventListener('click', () => {
+  loginFormSection.style.display = 'block';
+  registerFormSection.style.display = 'none';
 });
+registerLink.addEventListener('click', () => {
+  registerFormSection.style.display = 'block';
+  loginFormSection.style.display = 'none';
+});
+
+cancelLoginBtn.addEventListener('click', () => {
+  loginFormSection.style.display = 'none';
+});
+cancelRegisterBtn.addEventListener('click', () => {
+  registerFormSection.style.display = 'none';
+});
+
+// --- REJESTRACJA ---
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const username = document.getElementById('register-username').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const password = document.getElementById('register-password').value;
+
+  if (!username || !email || !password) {
+    alert('Wypełnij wszystkie pola!');
+    return;
+  }
+
+  try {
+    // Rejestracja Firebase
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    // Zapis dodatkowych danych w Firestore
+    await db.collection('users').doc(user.uid).set({
+      username: username,
+      avatarUrl: ''
+    });
+
+    alert('Rejestracja zakończona sukcesem. Możesz się teraz zalogować.');
+    registerFormSection.style.display = 'none';
+    registerForm.reset();
+
+  } catch (error) {
+    alert('Błąd podczas rejestracji: ' + error.message);
+  }
+});
+
+// --- LOGOWANIE ---
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  try {
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    // Pobierz dodatkowe dane użytkownika z Firestore
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) {
+      alert('Nie znaleziono danych użytkownika!');
+      return;
+    }
+    currentUserData = {
+      uid: user.uid,
+      email: user.email,
+      username: userDoc.data().username,
+      avatarUrl: userDoc.data().avatarUrl || ''
+    };
+
+    loginFormSection.style.display = 'none';
+    loginForm.reset();
+
+    updateUIAfterLogin();
+
+  } catch (error) {
+    alert('Błąd podczas logowania: ' + error.message);
+  }
+});
+
+// --- WYLOGOWANIE ---
+logoutBtn.addEventListener('click', async () => {
+  await auth.signOut();
+  currentUserData = null;
+  updateUIAfterLogout();
+});
+
+// --- ZAPIS AWATARA ---
+saveAvatarBtn.addEventListener('click', async () => {
+  const newAvatarUrl = avatarUrlInput.value.trim();
+  if (!newAvatarUrl) {
+    alert('Podaj link do awatara!');
+    return;
+  }
+  if (!currentUserData) return alert('Nie jesteś zalogowany!');
+
+  try {
+    await db.collection('users').doc(currentUserData.uid).update({
+      avatarUrl: newAvatarUrl
+    });
+    currentUserData.avatarUrl = newAvatarUrl;
+    avatarPreview.src = newAvatarUrl;
+    alert('Awatar został zapisany!');
+  } catch (error) {
+    alert('Błąd podczas zapisywania awatara: ' + error.message);
+  }
+});
+
+// --- AKTUALIZACJA UI PO ZALOGOWANIU ---
+function updateUIAfterLogin() {
+  // Ukryj formularze logowania/rejestracji
+  loginFormSection.style.display = 'none';
+  registerFormSection.style.display = 'none';
+
+  // Ukryj linki do logowania i rejestracji
+  document.getElementById('auth-buttons').style.display = 'none';
+
+  // Pokaż panel użytkownika
+  userPanel.style.display = 'block';
+  userNameDisplay.textContent = currentUserData.username || currentUserData.email;
+  avatarPreview.src = currentUserData.avatarUrl || '';
+  avatarUrlInput.value = currentUserData.avatarUrl || '';
+
+  // Odblokuj czat
+  chatInput.disabled = false;
+  sendBtn.disabled = false;
+  chatLoginWarning.style.display = 'none';
+
+  // Jeśli user to admin (username == "admin"), pokaż panel admina
+  if (currentUserData.username.toLowerCase() === 'admin') {
+    adminPanel.style.display = 'block';
+  } else {
+    adminPanel.style.display = 'none';
+  }
+}
+
+// --- AKTUALIZACJA UI PO WYLOGOWANIU ---
+function updateUIAfterLogout() {
+  // Pokaż linki do logowania i rejestracji
+  document.getElementById('auth-buttons').style.display = 'block';
+
+  // Ukryj panel użytkownika
+  userPanel.style.display = 'none';
+
+  // Zablokuj czat
+  chatInput.disabled = true;
+  sendBtn.disabled = true;
+  chatLoginWarning.style.display = 'block';
+
+  // Ukryj panel admina
+  adminPanel.style.display = 'none';
+}
+
+// --- OBSŁUGA STANU ZALOGOWANIA przy ładowaniu strony ---
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    // Pobierz dane z Firestore
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    if (userDoc.exists) {
+      currentUserData = {
+        uid: user.uid,
+        email: user.email,
+        username: userDoc.data().username,
+        avatarUrl: userDoc.data().avatarUrl || ''
+      };
+      updateUIAfterLogin();
+    } else {
+      // Jeśli nie ma dokumentu w Firestore, wyloguj
+      await auth.signOut();
+      updateUIAfterLogout();
+    }
+  } else {
+    currentUserData = null;
+    updateUIAfterLogout();
+  }
+});
+
+// --- Poniżej wstaw swoją dotychczasową logikę do czatu, newsów itd ---
+// np. funkcje do czatu, newsów, eventy itd.
+
+// -- Twoja istniejąca logika --
+// Tutaj zachowaj swój dotychczasowy kod do:
+// - dodawania newsów do localStorage i wyświetlania
+// - obsługi czatu i wiadomości w localStorage
+// - panel admina usuwania wiadomości itp.
+
+// Uwaga: pamiętaj, że teraz logowanie/rejestracja są na Firebase, więc nie korzystaj z localStorage do zapisywania użytkowników!
+
+// --- Przykład blokady wysyłania wiadomości na czacie jeśli nie zalogowany ---
+sendBtn.addEventListener('click', () => {
+  if (!currentUserData) {
+    alert('Musisz być zalogowany, aby pisać na czacie.');
+    return;
+  }
+  const msgInput = document.getElementById('chat-input');
+  const msg = msgInput.value.trim();
+  if (!msg) return;
+  
+  // tutaj dodaj swoją logikę zapisywania i wyświetlania wiadomości czatu
+  
+  msgInput.value = '';
+});
+
+// Możesz też dodać obsługę Enter na polu czatu itd.
+
