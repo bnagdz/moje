@@ -1,0 +1,348 @@
+/* RESET i PODSTAWY */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* SEKCJA POWITALNA */
+.top-section {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.welcome-box {
+  background-color: #fff;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.welcome-box h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+/* MENU BOCZNE */
+.sidebar-left,
+.sidebar-right {
+  position: fixed;
+  top: 0;
+  width: 220px;
+  height: 100%;
+  background-color: #333;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  z-index: 999;
+  overflow-y: auto;
+}
+
+.sidebar-left {
+  left: 0;
+}
+
+.sidebar-right {
+  right: 0;
+  width: 300px;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar-left ul,
+.sidebar-right ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.sidebar-left ul li,
+.sidebar-right ul li {
+  margin-bottom: 20px;
+}
+
+.sidebar-left ul li a,
+.sidebar-right ul li a {
+  display: block;
+  text-decoration: none;
+  color: white;
+  font-size: 18px;
+  padding: 10px;
+  border: 1px solid #ff7f50;
+  border-radius: 6px;
+  transition: background 0.3s;
+}
+
+.sidebar-left ul li a:hover,
+.sidebar-right ul li a:hover {
+  background-color: #ff7f50;
+}
+
+/* FORMULARZE W MENU */
+.form-inline {
+  background-color: #444;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 5px;
+}
+
+.form-inline input {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #aaa;
+}
+
+.form-inline button {
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: #ff7f50;
+  color: white;
+  cursor: pointer;
+}
+
+.form-inline button:hover {
+  background-color: #e67e22;
+}
+
+/* PANEL UŻYTKOWNIKA */
+.user-panel {
+  color: white;
+  background-color: #222;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.user-panel h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.user-panel input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 5px 0;
+  border: 1px solid #ccc;
+}
+
+.user-panel button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px;
+  background-color: #ff7f50;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+
+.user-panel button:hover {
+  background-color: #e67e22;
+}
+
+.avatar-preview {
+  display: block;
+  margin: 0 auto 10px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid white;
+  object-fit: cover;
+}
+
+/* SEKCJA NEWSÓW */
+.home-section {
+  flex: 1;
+  padding: 50px 0;
+  margin: 0 250px;
+}
+
+.news-item {
+  background: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.news-meta {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* CZAT */
+.chat-box {
+  display: flex;
+  flex-direction: column;
+  background-color: #444;
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
+  margin-bottom: 20px;
+}
+
+#chat-window {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #555;
+  padding: 10px;
+  height: 250px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.message-box div {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-direction: column;
+}
+
+.message-box .chat-message {
+  background: #666;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.message-box .chat-meta {
+  font-size: 11px;
+  color: #ccc;
+  margin-left: 42px;
+}
+
+.message-box img.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid white;
+}
+
+#chat-input {
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #666;
+  color: white;
+  margin-bottom: 10px;
+}
+
+#send-btn {
+  background-color: #ff7f50;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+}
+
+#send-btn:hover {
+  background-color: #e67e22;
+}
+
+/* PANEL ADMINA W MENU */
+.admin-panel {
+  background-color: #222;
+  color: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 20px;
+}
+
+.admin-panel h2, .admin-panel h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.admin-panel form input,
+.admin-panel form textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #aaa;
+}
+
+.admin-panel form button {
+  width: 100%;
+  background-color: #ff7f50;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+
+.admin-panel form button:hover {
+  background-color: #e67e22;
+}
+
+#chat-admin-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+#chat-admin-list li {
+  background: #eee;
+  padding: 10px;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+#chat-admin-list button {
+  margin-left: 10px;
+  background-color: #ff4d4d;
+  font-size: 12px;
+}
+
+#chat-admin-list button:hover {
+  background-color: #d63031;
+}
+
+/* STOPKA */
+footer {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 15px 0;
+  margin-top: auto;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+}

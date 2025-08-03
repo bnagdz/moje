@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Strona Gry</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Sekcja powitalna -->
+  <section class="top-section">
+    <div class="container">
+      <div class="welcome-box">
+        <h2>Witaj na stronie naszej gry online!</h2>
+        <p>Sprawdź aktualności, dodaj komentarz, dołącz do czatu lub zagraj!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sekcja wiadomości -->
+  <section id="home" class="home-section">
+    <div class="container">
+      <h2>Wiadomości i Nowości</h2>
+      <div id="news"></div>
+    </div>
+  </section>
+
+  <!-- Lewe menu -->
+  <aside id="left-menu" class="sidebar-left">
+    <ul>
+      <li><a href="#home">Start</a></li>
+      <li><a href="#news">Aktualności</a></li>
+      <li><a href="#game">Zagraj</a></li>
+    </ul>
+  </aside>
+
+  <!-- Prawe menu -->
+  <aside id="right-menu" class="sidebar-right">
+    <ul id="auth-buttons">
+      <li>
+        <a href="javascript:void(0);" id="login-link">Zaloguj się</a>
+        <div id="login-form-section" class="form-inline" style="display:none;">
+          <form id="login-form">
+            <input type="text" id="login-username" placeholder="Nazwa użytkownika" required />
+            <input type="password" id="login-password" placeholder="Hasło" required />
+            <button type="submit">Zaloguj się</button>
+            <button type="button" id="cancel-login">Anuluj</button>
+          </form>
+        </div>
+      </li>
+      <li>
+        <a href="javascript:void(0);" id="register-link">Zarejestruj się</a>
+        <div id="register-form-section" class="form-inline" style="display:none;">
+          <form id="register-form">
+            <input type="text" id="register-username" placeholder="Nazwa użytkownika" required />
+            <input type="email" id="register-email" placeholder="Email" required />
+            <input type="password" id="register-password" placeholder="Hasło" required />
+            <button type="submit">Zarejestruj się</button>
+            <button type="button" id="cancel-register">Anuluj</button>
+          </form>
+        </div>
+      </li>
+    </ul>
+
+    <!-- PANELE UŻYTKOWNIKA -->
+    <div id="user-panel" class="user-panel" style="display:none;">
+      <h3>Witaj, <span id="user-name-display"></span>!</h3>
+      <img id="avatar-preview" src="" alt="Awatar" class="avatar-preview"/>
+      <input type="text" id="avatar-url" placeholder="Link do awatara (URL)" />
+      <button id="save-avatar">Zapisz awatar</button>
+      <button id="logout-btn">Wyloguj się</button>
+    </div>
+
+    <!-- CZAT -->
+    <div id="chat" class="chat-box">
+      <div id="chat-login-warning" style="color: white; text-align: center; display: none;">
+        <p>Musisz być zalogowany, aby pisać na czacie.</p>
+      </div>
+      <div id="chat-window">
+        <div class="message-box" id="messages"></div>
+      </div>
+      <input type="text" id="chat-input" placeholder="Wpisz wiadomość..." disabled />
+      <button id="send-btn" disabled>Wyślij</button>
+    </div>
+
+    <!-- PANEL ADMINA -->
+    <div id="admin-panel" class="admin-panel" style="display: none;">
+      <h2>Panel Administracyjny</h2>
+      <form id="news-form">
+        <input type="text" id="news-title" placeholder="Tytuł wiadomości" required />
+        <textarea id="news-content" placeholder="Treść wiadomości" required></textarea>
+        <button type="submit">Dodaj wiadomość</button>
+      </form>
+
+      <div class="chat-admin-panel">
+        <h3>Wiadomości z czatu:</h3>
+        <ul id="chat-admin-list"></ul>
+      </div>
+
+      <button id="close-admin">Zamknij panel</button>
+    </div>
+  </aside>
+
+  <!-- Stopka -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Strona Gry - Wszystkie prawa zastrzeżone</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
