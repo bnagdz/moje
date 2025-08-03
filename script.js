@@ -16,7 +16,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-// --- Konfiguracja Firebase - wpisz tutaj swoje dane z konsoli Firebase ---
+// --- Konfiguracja Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyAvZ2ZdDjDLisZbMOqHCbcDNK5rMsXCgy8",
   authDomain: "strona-ed4f6.firebaseapp.com",
@@ -27,14 +27,11 @@ const firebaseConfig = {
   measurementId: "G-EWYZQPTM5Y"
 };
 
-// Inicjalizacja Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-
-  // ELEMENTY HTML
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
 
@@ -56,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('send-btn');
   const chatLoginWarning = document.getElementById('chat-login-warning');
 
-  // Pokazywanie/ukrywanie formularzy
   const loginLink = document.getElementById('login-link');
   const registerLink = document.getElementById('register-link');
   const loginFormSection = document.getElementById('login-form-section');
@@ -82,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     registerFormSection.style.display = 'none';
   });
 
-  // Rejestracja
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -99,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Zapisz nick i pusty avatar w Firestore
       await setDoc(doc(db, 'users', user.uid), {
         username: username,
         avatar: ''
@@ -109,11 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
       registerForm.reset();
       registerFormSection.style.display = 'none';
     } catch (error) {
+      console.error('Błąd rejestracji:', error);
       alert('Błąd rejestracji: ' + error.message);
     }
   });
 
-  // Logowanie
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -126,45 +120,43 @@ document.addEventListener('DOMContentLoaded', () => {
       loginForm.reset();
       loginFormSection.style.display = 'none';
     } catch (error) {
+      console.error('Błąd logowania:', error);
       alert('Błąd logowania: ' + error.message);
     }
   });
 
-  // Wylogowanie
   logoutBtn.addEventListener('click', async () => {
     await signOut(auth);
   });
 
-  // Aktualizacja widoku po zalogowaniu / wylogowaniu
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // Pobierz dane użytkownika z Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.exists() ? userDoc.data() : {};
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
 
-      userNameDisplay.textContent = userData.username || 'User';
-      avatarPreview.src = userData.avatar || '';
-      avatarUrlInput.value = userData.avatar || '';
+        userNameDisplay.textContent = userData.username || 'User';
+        avatarPreview.src = userData.avatar || '';
+        avatarUrlInput.value = userData.avatar || '';
 
-      userPanel.style.display = 'block';
-      chatInput.disabled = false;
-      sendBtn.disabled = false;
-      chatLoginWarning.style.display = 'none';
+        userPanel.style.display = 'block';
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        chatLoginWarning.style.display = 'none';
 
-      // Ukryj formularze logowania/rejestracji
-      loginFormSection.style.display = 'none';
-      registerFormSection.style.display = 'none';
-      document.getElementById('auth-buttons').style.display = 'none';
+        loginFormSection.style.display = 'none';
+        registerFormSection.style.display = 'none';
+        document.getElementById('auth-buttons').style.display = 'none';
 
-      // Pokaż panel admina jeśli email to bnagdz@o2.pl
-      if (user.email === 'bnagdz@o2.pl') {
-        document.getElementById('admin-panel').style.display = 'block';
-      } else {
-        document.getElementById('admin-panel').style.display = 'none';
+        if (user.email === 'bnagdz@o2.pl') {
+          document.getElementById('admin-panel').style.display = 'block';
+        } else {
+          document.getElementById('admin-panel').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Błąd pobierania danych użytkownika:', error);
       }
-
     } else {
-      // Użytkownik wylogowany
       userPanel.style.display = 'none';
       chatInput.disabled = true;
       sendBtn.disabled = true;
@@ -177,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Zapis awatara
   saveAvatarBtn.addEventListener('click', async () => {
     const user = auth.currentUser;
     if (!user) return alert('Musisz być zalogowany!');
@@ -190,10 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
       avatarPreview.src = newAvatarUrl;
       alert('Awatar zapisany.');
     } catch (error) {
+      console.error('Błąd zapisu awatara:', error);
       alert('Błąd zapisu awatara: ' + error.message);
     }
   });
-
-  // TODO: implementacja czatu i newsów później
 
 });
