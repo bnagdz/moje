@@ -1,303 +1,119 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Prosta aplikacja z backendem</title>
-<style>
-  body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; }
-  #chat { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-  .chat-message { margin-bottom: 5px; }
-  .news-item { border-bottom: 1px solid #ddd; padding: 5px 0; }
-  #user-panel { display: none; margin-bottom: 20px; }
-  #admin-panel { display: none; margin-top: 20px; border: 1px solid #f00; padding: 10px; }
-  button { margin: 5px 0; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Strona Gry</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-<h1>Witamy w aplikacji</h1>
+  <!-- Sekcja powitalna -->
+  <section class="top-section">
+    <div class="container">
+      <div class="welcome-box">
+        <h2>Witaj na stronie naszej gry online!</h2>
+        <p>Sprawdź aktualności, dodaj komentarz, dołącz do czatu lub zagraj!</p>
+      </div>
+    </div>
+  </section>
 
-<div id="auth-section">
-  <h3>Logowanie</h3>
-  <form id="login-form">
-    <input id="login-username" placeholder="Nazwa użytkownika" required /><br />
-    <input id="login-password" type="password" placeholder="Hasło" required /><br />
-    <button type="submit">Zaloguj się</button>
-  </form>
+  <!-- Sekcja wiadomości -->
+  <section id="home" class="home-section">
+    <div class="container">
+      <h2>Wiadomości i Nowości</h2>
+      <div id="news"></div>
+    </div>
+  </section>
 
-  <h3>Rejestracja</h3>
-  <form id="register-form">
-    <input id="register-username" placeholder="Nazwa użytkownika" required /><br />
-    <input id="register-email" type="email" placeholder="Email" required /><br />
-    <input id="register-password" type="password" placeholder="Hasło" required /><br />
-    <button type="submit">Zarejestruj się</button>
-  </form>
-</div>
+  <!-- Lewe menu -->
+  <aside id="left-menu" class="sidebar-left">
+    <ul>
+      <li><a href="#home">Start</a></li>
+      <li><a href="#news">Aktualności</a></li>
+      <li><a href="#game">Zagraj</a></li>
+    </ul>
+  </aside>
 
-<div id="user-panel">
-  <h3>Panel użytkownika</h3>
-  <p>Zalogowano jako: <span id="user-name-display"></span></p>
-  <img id="avatar-preview" src="https://via.placeholder.com/80" alt="Avatar" /><br />
-  <input id="avatar-url" placeholder="URL do avatara" />
-  <button id="save-avatar">Zapisz avatar</button><br />
-  <button id="logout-btn">Wyloguj się</button>
-</div>
+  <!-- Prawe menu -->
+  <aside id="right-menu" class="sidebar-right">
+    <ul id="auth-buttons">
+      <li>
+        <a href="javascript:void(0);" id="login-link">Zaloguj się</a>
+        <div id="login-form-section" class="form-inline" style="display:none;">
+          <form id="login-form">
+            <input type="text" id="login-username" placeholder="Nazwa użytkownika" required />
+            <input type="password" id="login-password" placeholder="Hasło" required />
+            <button type="submit">Zaloguj się</button>
+            <button type="button" id="cancel-login">Anuluj</button>
+          </form>
+        </div>
+      </li>
+      <li>
+        <a href="javascript:void(0);" id="register-link">Zarejestruj się</a>
+        <div id="register-form-section" class="form-inline" style="display:none;">
+          <form id="register-form">
+            <input type="text" id="register-username" placeholder="Nazwa użytkownika" required />
+            <input type="email" id="register-email" placeholder="Email" required />
+            <input type="password" id="register-password" placeholder="Hasło" required />
+            <button type="submit">Zarejestruj się</button>
+            <button type="button" id="cancel-register">Anuluj</button>
+          </form>
+        </div>
+      </li>
+    </ul>
 
-<h3>News</h3>
-<div id="news"></div>
+    <!-- PANELE UŻYTKOWNIKA -->
+    <div id="user-panel" class="user-panel" style="display:none;">
+      <h3>Witaj, <span id="user-name-display"></span>!</h3>
+      <img id="avatar-preview" src="" alt="Awatar" class="avatar-preview"/>
+      <input type="text" id="avatar-url" placeholder="Link do awatara (URL)" />
+      <button id="save-avatar">Zapisz awatar</button>
+      <button id="logout-btn">Wyloguj się</button>
+    </div>
 
-<div id="news-form-section" style="display:none;">
-  <h4>Dodaj news (admin)</h4>
-  <form id="news-form">
-    <input id="news-title" placeholder="Tytuł" required /><br />
-    <textarea id="news-content" placeholder="Treść" required></textarea><br />
-    <button type="submit">Dodaj news</button>
-  </form>
-</div>
+    <!-- CZAT -->
+    <div id="chat" class="chat-box">
+      <div id="chat-login-warning" style="color: white; text-align: center; display: none;">
+        <p>Musisz być zalogowany, aby pisać na czacie.</p>
+      </div>
+      <div id="chat-window">
+        <div class="message-box" id="messages"></div>
+      </div>
+      <input type="text" id="chat-input" placeholder="Wpisz wiadomość..." disabled />
+      <button id="send-btn" disabled>Wyślij</button>
+    </div>
 
-<h3>Czat</h3>
-<div id="chat"></div>
-<input id="chat-input" placeholder="Wpisz wiadomość" disabled />
-<button id="send-btn" disabled>Wyślij</button>
+    <!-- PANEL ADMINA -->
+    <div id="admin-panel" class="admin-panel" style="display: none;">
+      <h2>Panel Administracyjny</h2>
+      <form id="news-form">
+        <input type="text" id="news-title" placeholder="Tytuł wiadomości" required />
+        <textarea id="news-content" placeholder="Treść wiadomości" required></textarea>
+        <button type="submit">Dodaj wiadomość</button>
+      </form>
 
-<div id="admin-panel">
-  <h3>Panel admina</h3>
-  <p>Możesz edytować i usuwać wiadomości na czacie oraz usuwać newsy.</p>
-</div>
+      <div class="chat-admin-panel">
+        <h3>Wiadomości z czatu:</h3>
+        <ul id="chat-admin-list"></ul>
+      </div>
 
-<script>
-  const API_URL = ''; // Jeśli backend na tym samym serwerze, zostaw puste lub wpisz URL
+      <button id="close-admin">Zamknij panel</button>
+    </div>
+  </aside>
 
-  let token = localStorage.getItem('token');
-  let currentUser = localStorage.getItem('currentUser');
-  const authSection = document.getElementById('auth-section');
-  const userPanel = document.getElementById('user-panel');
-  const userNameDisplay = document.getElementById('user-name-display');
-  const avatarPreview = document.getElementById('avatar-preview');
-  const avatarUrlInput = document.getElementById('avatar-url');
-  const saveAvatarBtn = document.getElementById('save-avatar');
-  const logoutBtn = document.getElementById('logout-btn');
-  const loginForm = document.getElementById('login-form');
-  const registerForm = document.getElementById('register-form');
-  const chatDiv = document.getElementById('chat');
-  const chatInput = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('send-btn');
-  const newsDiv = document.getElementById('news');
-  const newsFormSection = document.getElementById('news-form-section');
-  const newsForm = document.getElementById('news-form');
-  const adminPanel = document.getElementById('admin-panel');
+  <!-- Stopka -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Strona Gry - Wszystkie prawa zastrzeżone</p>
+    </div>
+  </footer>
 
-  function authHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  }
-
-  async function fetchNews() {
-    const res = await fetch(API_URL + '/api/news');
-    const news = await res.json();
-    newsDiv.innerHTML = '';
-    news.forEach(n => {
-      const div = document.createElement('div');
-      div.className = 'news-item';
-      div.innerHTML = `<strong>${n.title}</strong> <em>(${new Date(n.time).toLocaleString()})</em><br>${n.content} <br> <small>autor: ${n.author}</small>`;
-      if(currentUser === 'admin') {
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Usuń news';
-        delBtn.onclick = async () => {
-          if(confirm('Na pewno usunąć?')) {
-            await fetch(API_URL + '/api/news/' + n.id, { method: 'DELETE', headers: authHeaders() });
-            fetchNews();
-          }
-        };
-        div.appendChild(delBtn);
-      }
-      newsDiv.appendChild(div);
-    });
-  }
-
-  async function fetchChat() {
-    if(!token) return;
-    const res = await fetch(API_URL + '/api/chat', { headers: authHeaders() });
-    const chat = await res.json();
-    chatDiv.innerHTML = '';
-    chat.forEach(m => {
-      const div = document.createElement('div');
-      div.className = 'chat-message';
-      div.innerHTML = `<strong>${m.user}</strong> <em>(${new Date(m.time).toLocaleTimeString()})</em>: ${m.text}`;
-      if(currentUser === 'admin') {
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edytuj';
-        editBtn.onclick = () => {
-          const newText = prompt('Edytuj wiadomość:', m.text);
-          if(newText !== null) {
-            fetch(API_URL + '/api/chat/' + m.id, {
-              method: 'PUT',
-              headers: authHeaders(),
-              body: JSON.stringify({ text: newText })
-            }).then(fetchChat);
-          }
-        };
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Usuń';
-        delBtn.onclick = () => {
-          if(confirm('Na pewno usunąć wiadomość?')) {
-            fetch(API_URL + '/api/chat/' + m.id, { method: 'DELETE', headers: authHeaders() })
-              .then(fetchChat);
-          }
-        };
-        div.appendChild(editBtn);
-        div.appendChild(delBtn);
-      }
-      chatDiv.appendChild(div);
-    });
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-  }
-
-  async function loadUserData() {
-    if(!token || !currentUser) return;
-    const res = await fetch(API_URL + '/api/users/' + currentUser, { headers: authHeaders() });
-    if(res.ok) {
-      const user = await res.json();
-      userNameDisplay.textContent = user.username;
-      avatarPreview.src = user.avatar || 'https://via.placeholder.com/80';
-      if(user.username === 'admin') {
-        newsFormSection.style.display = 'block';
-        adminPanel.style.display = 'block';
-      } else {
-        newsFormSection.style.display = 'none';
-        adminPanel.style.display = 'none';
-      }
-    }
-  }
-
-  async function login(username, password) {
-    const res = await fetch(API_URL + '/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    if(res.ok) {
-      const data = await res.json();
-      token = data.token;
-      currentUser = data.username;
-      localStorage.setItem('token', token);
-      localStorage.setItem('currentUser', currentUser);
-      authSection.style.display = 'none';
-      userPanel.style.display = 'block';
-      chatInput.disabled = false;
-      sendBtn.disabled = false;
-      await loadUserData();
-      await fetchNews();
-      await fetchChat();
-    } else {
-      alert('Błędny login lub hasło');
-    }
-  }
-
-  async function register(username, email, password) {
-    const res = await fetch(API_URL + '/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
-    });
-    if(res.ok) {
-      alert('Zarejestrowano, teraz się zaloguj');
-    } else {
-      const err = await res.json();
-      alert('Błąd: ' + (err.error || 'Nieznany'));
-    }
-  }
-
-  loginForm.addEventListener('submit', e => {
-    e.preventDefault();
-    login(document.getElementById('login-username').value, document.getElementById('login-password').value);
-  });
-
-  registerForm.addEventListener('submit', e => {
-    e.preventDefault();
-    register(
-      document.getElementById('register-username').value,
-      document.getElementById('register-email').value,
-      document.getElementById('register-password').value
-    );
-  });
-
-  sendBtn.addEventListener('click', async () => {
-    const text = chatInput.value.trim();
-    if(!text) return;
-    await fetch(API_URL + '/api/chat', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ text })
-    });
-    chatInput.value = '';
-    fetchChat();
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    token = null;
-    currentUser = null;
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
-    authSection.style.display = 'block';
-    userPanel.style.display = 'none';
-    chatInput.disabled = true;
-    sendBtn.disabled = true;
-    newsFormSection.style.display = 'none';
-    adminPanel.style.display = 'none';
-    chatDiv.innerHTML = '';
-    newsDiv.innerHTML = '';
-  });
-
-  saveAvatarBtn.addEventListener('click', async () => {
-    const avatar = avatarUrlInput.value.trim();
-    if(!avatar) return alert('Podaj URL avatara');
-    const res = await fetch(API_URL + '/api/users/avatar', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ avatar })
-    });
-    if(res.ok) {
-      avatarPreview.src = avatar;
-      alert('Avatar zapisany');
-    } else {
-      alert('Błąd zapisu avatara');
-    }
-  });
-
-  newsForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const title = document.getElementById('news-title').value.trim();
-    const content = document.getElementById('news-content').value.trim();
-    if(!title || !content) return alert('Wypełnij tytuł i treść');
-    const res = await fetch(API_URL + '/api/news', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ title, content })
-    });
-    if(res.ok) {
-      alert('News dodany');
-      newsForm.reset();
-      fetchNews();
-    } else {
-      alert('Błąd dodawania newsa');
-    }
-  });
-
-  // Jeśli już zalogowany, pokaż panel i dane
-  if(token && currentUser) {
-    authSection.style.display = 'none';
-    userPanel.style.display = 'block';
-    chatInput.disabled = false;
-    sendBtn.disabled = false;
-    loadUserData();
-    fetchNews();
-    fetchChat();
-  }
-</script>
-
+  <!-- Twój skrypt -->
+  <script src="script.js"></script>
 </body>
 </html>
