@@ -37,51 +37,45 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-
-  // ELEMENTY HTML
+  // Elementy HTML
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
-
   const loginUsernameInput = document.getElementById('login-username');
   const loginPasswordInput = document.getElementById('login-password');
-
   const registerUsernameInput = document.getElementById('register-username');
   const registerEmailInput = document.getElementById('register-email');
   const registerPasswordInput = document.getElementById('register-password');
-
   const userPanel = document.getElementById('user-panel');
   const userNameDisplay = document.getElementById('user-name-display');
   const avatarPreview = document.getElementById('avatar-preview');
   const avatarUrlInput = document.getElementById('avatar-url');
   const saveAvatarBtn = document.getElementById('save-avatar');
   const logoutBtn = document.getElementById('logout-btn');
-
   const chatInput = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
   const chatLoginWarning = document.getElementById('chat-login-warning');
-
   const loginLink = document.getElementById('login-link');
   const registerLink = document.getElementById('register-link');
   const loginFormSection = document.getElementById('login-form-section');
   const registerFormSection = document.getElementById('register-form-section');
   const cancelLoginBtn = document.getElementById('cancel-login');
   const cancelRegisterBtn = document.getElementById('cancel-register');
+  const authButtons = document.getElementById('auth-buttons');
+  const adminPanel = document.getElementById('admin-panel');
+  const chatMessagesContainer = document.getElementById('messages');
 
   // Pokazywanie/ukrywanie formularzy
   loginLink.addEventListener('click', () => {
     loginFormSection.style.display = 'block';
     registerFormSection.style.display = 'none';
   });
-
   registerLink.addEventListener('click', () => {
     registerFormSection.style.display = 'block';
     loginFormSection.style.display = 'none';
   });
-
   cancelLoginBtn.addEventListener('click', () => {
     loginFormSection.style.display = 'none';
   });
-
   cancelRegisterBtn.addEventListener('click', () => {
     registerFormSection.style.display = 'none';
   });
@@ -139,103 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await signOut(auth);
   });
 
-  // Funkcja do renderowania wiadomości czatu
-  function renderMessages(messages) {
-    const chatMessagesContainer = document.getElementById('chat-messages');
-    chatMessagesContainer.innerHTML = '';
-
-    messages.forEach(msg => {
-      const div = document.createElement('div');
-      div.className = 'chat-message';
-
-      const avatar = document.createElement('img');
-      avatar.src = msg.avatar || 'default-avatar.png';
-      avatar.alt = 'Avatar';
-      avatar.className = 'chat-avatar';
-
-      const usernameSpan = document.createElement('span');
-      usernameSpan.textContent = msg.username || 'Anonim';
-      usernameSpan.className = 'chat-username';
-
-      const textSpan = document.createElement('span');
-      textSpan.textContent = msg.text;
-      textSpan.className = 'chat-text';
-
-      const timeSpan = document.createElement('span');
-      timeSpan.textContent = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleString() : '';
-      timeSpan.className = 'chat-time';
-
-      div.appendChild(avatar);
-      div.appendChild(usernameSpan);
-      div.appendChild(textSpan);
-      div.appendChild(timeSpan);
-
-      chatMessagesContainer.appendChild(div);
-    });
-
-    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-  }
-
-  let unsubscribeChat = null;
-
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      // Pobierz dane użytkownika z Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.exists() ? userDoc.data() : {};
-
-      userNameDisplay.textContent = userData.username || 'User';
-      avatarPreview.src = userData.avatar || '';
-      avatarUrlInput.value = userData.avatar || '';
-
-      userPanel.style.display = 'block';
-      chatInput.disabled = false;
-      sendBtn.disabled = false;
-      chatLoginWarning.style.display = 'none';
-
-      loginFormSection.style.display = 'none';
-      registerFormSection.style.display = 'none';
-      document.getElementById('auth-buttons').style.display = 'none';
-
-      // Panel admina dla bnagdz@o2.pl i hasła Flak1234 — ale hasło nie trzymamy tu, więc rozpoznajemy po emailu
-      if (user.email && user.email.toLowerCase() === 'bnagdz@o2.pl') {
-        document.getElementById('admin-panel').style.display = 'block';
-      } else {
-        document.getElementById('admin-panel').style.display = 'none';
-      }
-
-      // Słuchanie czatu na żywo
-      const chatRef = collection(db, 'chatMessages');
-      const q = query(chatRef, orderBy('timestamp', 'asc'));
-
-      if (unsubscribeChat) unsubscribeChat();
-      unsubscribeChat = onSnapshot(q, (querySnapshot) => {
-        const messages = [];
-        querySnapshot.forEach(doc => messages.push(doc.data()));
-        renderMessages(messages);
-      });
-
-    } else {
-      userPanel.style.display = 'none';
-      chatInput.disabled = true;
-      sendBtn.disabled = true;
-      chatLoginWarning.style.display = 'block';
-      document.getElementById('auth-buttons').style.display = 'block';
-      document.getElementById('admin-panel').style.display = 'none';
-      userNameDisplay.textContent = '';
-      avatarPreview.src = '';
-      avatarUrlInput.value = '';
-
-      if (unsubscribeChat) {
-        unsubscribeChat();
-        unsubscribeChat = null;
-      }
-
-      const chatMessagesContainer = document.getElementById('chat-messages');
-      if(chatMessagesContainer) chatMessagesContainer.innerHTML = '';
-    }
-  });
-
   // Zapis awatara
   saveAvatarBtn.addEventListener('click', async () => {
     const user = auth.currentUser;
@@ -253,17 +150,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Wysyłanie wiadomości czatu
-  const sendMessage = async () => {
+  // Obsługa czatu: wysyłanie wiadomości
+  sendBtn.addEventListener('click', async () => {
     const user = auth.currentUser;
     if (!user) {
-      alert('Musisz być zalogowany, aby pisać na czacie!');
+      alert('Musisz być zalogowany, aby pisać na czacie.');
       return;
     }
-
     const text = chatInput.value.trim();
     if (!text) return;
 
+    // Pobierz username i avatar z Firestore
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     const userData = userDoc.exists() ? userDoc.data() : {};
 
@@ -279,15 +176,67 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       alert('Błąd wysyłania wiadomości: ' + error.message);
     }
-  };
-
-  sendBtn.addEventListener('click', sendMessage);
-
-  chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
   });
 
+  // Wyświetlanie wiadomości na czacie - realtime
+  const q = query(collection(db, 'chatMessages'), orderBy('timestamp', 'asc'));
+  onSnapshot(q, (querySnapshot) => {
+    chatMessagesContainer.innerHTML = ''; // czyść okno
+
+    querySnapshot.forEach((doc) => {
+      const msg = doc.data();
+      const time = msg.timestamp ? msg.timestamp.toDate().toLocaleString() : '';
+      const avatarImg = msg.avatar ? `<img src="${msg.avatar}" alt="avatar" class="chat-avatar" />` : '';
+      chatMessagesContainer.innerHTML += `
+        <div class="chat-message">
+          ${avatarImg}
+          <strong>${msg.username}</strong> <small>${time}</small><br/>
+          <span>${msg.text}</span>
+        </div>
+      `;
+    });
+
+    // Scroll na dół czatu
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+  });
+
+  // Aktualizacja widoku po zalogowaniu/wylogowaniu
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // Pobierz dane użytkownika z Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.exists() ? userDoc.data() : {};
+
+      userNameDisplay.textContent = userData.username || 'User';
+      avatarPreview.src = userData.avatar || '';
+      avatarUrlInput.value = userData.avatar || '';
+
+      userPanel.style.display = 'block';
+      chatInput.disabled = false;
+      sendBtn.disabled = false;
+      chatLoginWarning.style.display = 'none';
+      authButtons.style.display = 'none';
+      
+      // Pokaż panel admina jeśli email to bnagdz@o2.pl
+      if (user.email && user.email.toLowerCase() === 'bnagdz@o2.pl') {
+        adminPanel.style.display = 'block';
+      } else {
+        adminPanel.style.display = 'none';
+      }
+      
+      loginFormSection.style.display = 'none';
+      registerFormSection.style.display = 'none';
+    } else {
+      // Użytkownik wylogowany
+      userPanel.style.display = 'none';
+      chatInput.disabled = true;
+      sendBtn.disabled = true;
+      chatLoginWarning.style.display = 'block';
+      authButtons.style.display = 'block';
+      adminPanel.style.display = 'none';
+      userNameDisplay.textContent = '';
+      avatarPreview.src = '';
+      avatarUrlInput.value = '';
+    }
+  });
 });
