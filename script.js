@@ -16,7 +16,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-// --- Konfiguracja Firebase ---
+// --- Konfiguracja Firebase - wpisz tutaj swoje dane z konsoli Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyAvZ2ZdDjDLisZbMOqHCbcDNK5rMsXCgy8",
   authDomain: "strona-ed4f6.firebaseapp.com",
@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('send-btn');
   const chatLoginWarning = document.getElementById('chat-login-warning');
 
+  // Pokazywanie/ukrywanie formularzy
   const loginLink = document.getElementById('login-link');
   const registerLink = document.getElementById('register-link');
   const loginFormSection = document.getElementById('login-form-section');
@@ -150,18 +151,20 @@ document.addEventListener('DOMContentLoaded', () => {
       sendBtn.disabled = false;
       chatLoginWarning.style.display = 'none';
 
+      // Ukryj formularze logowania/rejestracji
       loginFormSection.style.display = 'none';
       registerFormSection.style.display = 'none';
       document.getElementById('auth-buttons').style.display = 'none';
 
-      // Tutaj: panel admina tylko dla konkretnego emaila
-      if (user.email === "bnagdz@o2.pl") {
+      // Pokaż panel admina jeśli email to bnagdz@o2.pl
+      if (user.email === 'bnagdz@o2.pl') {
         document.getElementById('admin-panel').style.display = 'block';
       } else {
         document.getElementById('admin-panel').style.display = 'none';
       }
 
     } else {
+      // Użytkownik wylogowany
       userPanel.style.display = 'none';
       chatInput.disabled = true;
       sendBtn.disabled = true;
