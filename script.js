@@ -1,118 +1,278 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Strona Gry</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
+// Firebase konfiguracja (podstaw Twoją konfigurację)
+const firebaseConfig = {
+  apiKey: "AIzaSyAvZ2ZdDjDLisZbMOqHCbcDNK5rMsXCgy8",
+  authDomain: "strona-ed4f6.firebaseapp.com",
+  projectId: "strona-ed4f6",
+  storageBucket: "strona-ed4f6.appspot.com",
+  messagingSenderId: "101656150028",
+  appId: "1:101656150028:web:5830ca8a36c5b5250e6e29",
+  measurementId: "G-EWYZQPTM5Y"
+};
 
-  <!-- Sekcja powitalna -->
-  <section class="top-section">
-    <div class="container">
-      <div class="welcome-box">
-        <h2>Witaj na stronie naszej gry online!</h2>
-        <p>Sprawdź aktualności, dodaj komentarz, dołącz do czatu lub zagraj!</p>
-      </div>
-    </div>
-  </section>
+// Inicjalizacja Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-  <!-- Sekcja wiadomości -->
-  <section id="home" class="home-section">
-    <div class="container">
-      <h2>Wiadomości i Nowości</h2>
-      <div id="news"></div>
-    </div>
-  </section>
+// Elementy DOM
+const loginLink = document.getElementById('login-link');
+const registerLink = document.getElementById('register-link');
+const loginFormSection = document.getElementById('login-form-section');
+const registerFormSection = document.getElementById('register-form-section');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const cancelLoginBtn = document.getElementById('cancel-login');
+const cancelRegisterBtn = document.getElementById('cancel-register');
 
-  <!-- Lewe menu -->
-  <aside id="left-menu" class="sidebar-left">
-    <ul>
-      <li><a href="#home">Start</a></li>
-      <li><a href="#news">Aktualności</a></li>
-      <li><a href="#game">Zagraj</a></li>
-    </ul>
-  </aside>
+const userPanel = document.getElementById('user-panel');
+const userNameDisplay = document.getElementById('user-name-display');
+const avatarPreview = document.getElementById('avatar-preview');
+const avatarUrlInput = document.getElementById('avatar-url');
+const saveAvatarBtn = document.getElementById('save-avatar');
+const logoutBtn = document.getElementById('logout-btn');
 
-  <!-- Prawe menu -->
-  <aside id="right-menu" class="sidebar-right">
-    <ul id="auth-buttons">
-      <li>
-        <a href="javascript:void(0);" id="login-link">Zaloguj się</a>
-        <div id="login-form-section" class="form-inline" style="display:none;">
-          <form id="login-form">
-            <input type="email" id="login-email" placeholder="Email" required />
-            <input type="password" id="login-password" placeholder="Hasło" required />
-            <button type="submit">Zaloguj się</button>
-            <button type="button" id="cancel-login">Anuluj</button>
-          </form>
-        </div>
-      </li>
-      <li>
-        <a href="javascript:void(0);" id="register-link">Zarejestruj się</a>
-        <div id="register-form-section" class="form-inline" style="display:none;">
-          <form id="register-form">
-            <input type="text" id="register-username" placeholder="Nazwa użytkownika" required />
-            <input type="email" id="register-email" placeholder="Email" required />
-            <input type="password" id="register-password" placeholder="Hasło" required />
-            <button type="submit">Zarejestruj się</button>
-            <button type="button" id="cancel-register">Anuluj</button>
-          </form>
-        </div>
-      </li>
-    </ul>
+const chatLoginWarning = document.getElementById('chat-login-warning');
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const messagesDiv = document.getElementById('messages');
 
-    <!-- PANELE UŻYTKOWNIKA -->
-    <div id="user-panel" class="user-panel" style="display:none;">
-      <h3>Witaj, <span id="user-name-display"></span>!</h3>
-      <img id="avatar-preview" src="" alt="Awatar" class="avatar-preview"/>
-      <input type="text" id="avatar-url" placeholder="Link do awatara (URL)" />
-      <button id="save-avatar">Zapisz awatar</button>
-      <button id="logout-btn">Wyloguj się</button>
-    </div>
+const adminPanel = document.getElementById('admin-panel');
+const newsForm = document.getElementById('news-form');
+const newsTitleInput = document.getElementById('news-title');
+const newsContentInput = document.getElementById('news-content');
+const newsDiv = document.getElementById('news');
 
-    <!-- CZAT -->
-    <div id="chat" class="chat-box">
-      <div id="chat-login-warning" style="color: white; text-align: center; display: none;">
-        <p>Musisz być zalogowany, aby pisać na czacie.</p>
-      </div>
-      <div id="chat-window">
-        <div class="message-box" id="messages"></div>
-      </div>
-      <input type="text" id="chat-input" placeholder="Wpisz wiadomość..." disabled />
-      <button id="send-btn" disabled>Wyślij</button>
-    </div>
+const chatAdminList = document.getElementById('chat-admin-list');
+const closeAdminBtn = document.getElementById('close-admin');
 
-    <!-- PANEL ADMINA -->
-    <div id="admin-panel" class="admin-panel" style="display: none;">
-      <h2>Panel Administracyjny</h2>
-      <form id="news-form">
-        <input type="text" id="news-title" placeholder="Tytuł wiadomości" required />
-        <textarea id="news-content" placeholder="Treść wiadomości" required></textarea>
-        <button type="submit">Dodaj wiadomość</button>
-      </form>
+let currentUser = null;
 
-      <div class="chat-admin-panel">
-        <h3>Wiadomości z czatu:</h3>
-        <ul id="chat-admin-list"></ul>
-      </div>
+// Pokaż / Ukryj formularze logowania i rejestracji
+loginLink.addEventListener('click', () => {
+  loginFormSection.style.display = 'block';
+  registerFormSection.style.display = 'none';
+});
+registerLink.addEventListener('click', () => {
+  registerFormSection.style.display = 'block';
+  loginFormSection.style.display = 'none';
+});
+cancelLoginBtn.addEventListener('click', () => {
+  loginFormSection.style.display = 'none';
+});
+cancelRegisterBtn.addEventListener('click', () => {
+  registerFormSection.style.display = 'none';
+});
 
-      <button id="close-admin">Zamknij panel</button>
-    </div>
-  </aside>
+// Rejestracja użytkownika
+registerForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const username = registerForm['register-username'].value.trim();
+  const email = registerForm['register-email'].value.trim();
+  const password = registerForm['register-password'].value;
 
-  <!-- Stopka -->
-  <footer>
-    <div class="container">
-      <p>&copy; 2025 Strona Gry - Wszystkie prawa zastrzeżone</p>
-    </div>
-  </footer>
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
 
-  <!-- Firebase i skrypt -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="script.js"></script>
-</body>
-</html>
+    // Dodaj dodatkowe dane do Firestore
+    await db.collection('users').doc(user.uid).set({
+      username: username,
+      avatar: '',
+      email: email,
+      isAdmin: username.toLowerCase() === 'admin' // jeśli nazwa to admin - przyznaj admina
+    });
+
+    alert('Rejestracja przebiegła pomyślnie. Możesz się zalogować.');
+    registerForm.reset();
+    registerFormSection.style.display = 'none';
+  } catch (error) {
+    alert('Błąd rejestracji: ' + error.message);
+  }
+});
+
+// Logowanie użytkownika
+loginForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = loginForm['login-email'].value.trim();
+  const password = loginForm['login-password'].value;
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    loginForm.reset();
+    loginFormSection.style.display = 'none';
+  } catch (error) {
+    alert('Błąd logowania: ' + error.message);
+  }
+});
+
+// Wylogowanie
+logoutBtn.addEventListener('click', () => {
+  auth.signOut();
+});
+
+// Zapis awatara
+saveAvatarBtn.addEventListener('click', async () => {
+  const url = avatarUrlInput.value.trim();
+  if (!url) {
+    alert('Podaj URL do awatara.');
+    return;
+  }
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ avatar: url });
+    avatarPreview.src = url;
+    avatarUrlInput.value = '';
+    alert('Awatar zapisany.');
+  } catch (error) {
+    alert('Błąd zapisu awatara: ' + error.message);
+  }
+});
+
+// Nasłuchuj zmiany stanu uwierzytelnienia
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  if (user) {
+    // Pobierz dane użytkownika z Firestore
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) {
+      alert('Błąd: brak danych użytkownika.');
+      return;
+    }
+    const userData = userDoc.data();
+
+    // Pokaż panel użytkownika
+    userNameDisplay.textContent = userData.username;
+    avatarPreview.src = userData.avatar || 'default-avatar.png';
+    avatarUrlInput.value = '';
+
+    userPanel.style.display = 'block';
+    document.getElementById('auth-buttons').style.display = 'none';
+
+    // Włącz czat
+    chatInput.disabled = false;
+    sendBtn.disabled = false;
+    chatLoginWarning.style.display = 'none';
+
+    // Pokaż panel admina jeśli admin
+    if (userData.isAdmin) {
+      adminPanel.style.display = 'block';
+      loadNews();
+      loadChatMessagesAdmin();
+    } else {
+      adminPanel.style.display = 'none';
+    }
+
+    loadChatMessages();
+  } else {
+    currentUser = null;
+    userPanel.style.display = 'none';
+    document.getElementById('auth-buttons').style.display = 'block';
+
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+    chatLoginWarning.style.display = 'block';
+
+    adminPanel.style.display = 'none';
+
+    // Wyczyść wiadomości czatu i newsów
+    messagesDiv.innerHTML = '';
+    newsDiv.innerHTML = '';
+  }
+});
+
+// Dodawanie newsów (panel admina)
+newsForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const title = newsTitleInput.value.trim();
+  const content = newsContentInput.value.trim();
+  if (!title || !content) return;
+
+  try {
+    await db.collection('news').add({
+      title,
+      content,
+      author: currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    newsTitleInput.value = '';
+    newsContentInput.value = '';
+    loadNews();
+  } catch (error) {
+    alert('Błąd dodawania wiadomości: ' + error.message);
+  }
+});
+
+// Ładowanie newsów i wyświetlanie
+function loadNews() {
+  db.collection('news').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+    newsDiv.innerHTML = '';
+    snapshot.forEach(doc => {
+      const news = doc.data();
+      const dateStr = news.createdAt ? news.createdAt.toDate().toLocaleString() : '';
+      const div = document.createElement('div');
+      div.classList.add('news-item');
+      div.innerHTML = `<h3>${news.title}</h3><p>${news.content}</p><small>Autor: ${news.author} | ${dateStr}</small>`;
+      newsDiv.appendChild(div);
+    });
+  });
+}
+
+// CZAT
+
+// Wysyłanie wiadomości czatu
+sendBtn.addEventListener('click', async () => {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  try {
+    await db.collection('chat').add({
+      userId: currentUser.uid,
+      username: userNameDisplay.textContent,
+      message: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    chatInput.value = '';
+  } catch (error) {
+    alert('Błąd wysyłania wiadomości: ' + error.message);
+  }
+});
+
+// Nasłuchuj nowych wiadomości i wyświetlaj
+function loadChatMessages() {
+  db.collection('chat').orderBy('createdAt').limit(50).onSnapshot(snapshot => {
+    messagesDiv.innerHTML = '';
+    snapshot.forEach(doc => {
+      const msg = doc.data();
+      const dateStr = msg.createdAt ? msg.createdAt.toDate().toLocaleString() : '';
+      const div = document.createElement('div');
+      div.classList.add('chat-message');
+      div.innerHTML = `<strong>${msg.username}:</strong> ${msg.message} <small>${dateStr}</small>`;
+      messagesDiv.appendChild(div);
+    });
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+}
+
+// Ładowanie wiadomości czatu do panelu admina (lista z możliwością usuwania)
+function loadChatMessagesAdmin() {
+  chatAdminList.innerHTML = '';
+  db.collection('chat').orderBy('createdAt').limit(100).onSnapshot(snapshot => {
+    chatAdminList.innerHTML = '';
+    snapshot.forEach(doc => {
+      const msg = doc.data();
+      const li = document.createElement('li');
+      const dateStr = msg.createdAt ? msg.createdAt.toDate().toLocaleString() : '';
+      li.textContent = `${msg.username}: ${msg.message} (${dateStr})`;
+      // Dodaj przycisk usuwania wiadomości
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Usuń';
+      delBtn.style.marginLeft = '10px';
+      delBtn.addEventListener('click', async () => {
+        if (confirm('Na pewno usunąć tę wiadomość?')) {
+          try {
+            await db.collection('chat').doc(doc.id).delete();
+          } catch (error) {
+            alert('Błąd usuwania wiadomości: ' + error.message);
+          }
+        }
+      });
+      li
