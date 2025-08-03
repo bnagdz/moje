@@ -1,348 +1,234 @@
-/* RESET i PODSTAWY */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  height: 100%;
-}
-
 body {
-  font-family: 'Arial', sans-serif;
-  background-color: #f4f4f4;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #222;
+  color: #eee;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 15px;
 }
 
-/* SEKCJA POWITALNA */
 .top-section {
-  padding: 40px 0;
+  background: #444;
+  padding: 20px 0;
   text-align: center;
 }
 
-.welcome-box {
-  background-color: #fff;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  padding: 30px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  max-width: 800px;
-  margin: 0 auto;
-}
-
 .welcome-box h2 {
+  margin: 0;
   font-size: 2rem;
-  margin-bottom: 15px;
 }
 
-/* MENU BOCZNE */
-.sidebar-left,
-.sidebar-right {
-  position: fixed;
-  top: 0;
-  width: 220px;
-  height: 100%;
-  background-color: #333;
-  padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-  z-index: 999;
-  overflow-y: auto;
+.home-section {
+  background: #333;
+  padding: 20px 0;
 }
 
 .sidebar-left {
+  position: fixed;
+  top: 120px;
   left: 0;
+  width: 150px;
+  background: #111;
+  height: calc(100% - 120px);
+  padding: 10px;
+}
+
+.sidebar-left ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-left ul li {
+  margin-bottom: 10px;
+}
+
+.sidebar-left ul li a {
+  color: #ccc;
+  text-decoration: none;
+}
+
+.sidebar-left ul li a:hover {
+  color: #fff;
 }
 
 .sidebar-right {
+  position: fixed;
+  top: 60px;
   right: 0;
-  width: 300px;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  width: 320px;
+  background: #111;
+  height: calc(100% - 60px);
+  padding: 15px;
+  overflow-y: auto;
 }
 
-.sidebar-left ul,
-.sidebar-right ul {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 20px;
-}
-
-.sidebar-left ul li,
-.sidebar-right ul li {
-  margin-bottom: 20px;
-}
-
-.sidebar-left ul li a,
-.sidebar-right ul li a {
-  display: block;
-  text-decoration: none;
-  color: white;
-  font-size: 18px;
-  padding: 10px;
-  border: 1px solid #ff7f50;
-  border-radius: 6px;
-  transition: background 0.3s;
-}
-
-.sidebar-left ul li a:hover,
-.sidebar-right ul li a:hover {
-  background-color: #ff7f50;
-}
-
-/* FORMULARZE W MENU */
-.form-inline {
-  background-color: #444;
-  padding: 10px;
-  border-radius: 6px;
-  margin-top: 5px;
-}
-
-.form-inline input {
-  width: 100%;
-  margin-bottom: 8px;
+.form-inline input, .form-inline button {
+  margin: 5px 0;
   padding: 8px;
+  width: 90%;
+  display: block;
+  border: none;
   border-radius: 4px;
-  border: 1px solid #aaa;
 }
 
 .form-inline button {
-  width: 100%;
-  margin-bottom: 5px;
-  padding: 8px;
-  border: none;
-  border-radius: 4px;
-  background-color: #ff7f50;
+  background: #4CAF50;
   color: white;
   cursor: pointer;
 }
 
 .form-inline button:hover {
-  background-color: #e67e22;
+  background: #45a049;
 }
 
-/* PANEL UŻYTKOWNIKA */
 .user-panel {
-  color: white;
-  background-color: #222;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 20px;
+  margin-top: 20px;
+  border-top: 1px solid #444;
+  padding-top: 15px;
+  text-align: center;
 }
 
 .user-panel h3 {
-  font-size: 18px;
   margin-bottom: 10px;
-}
-
-.user-panel input {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  margin: 5px 0;
-  border: 1px solid #ccc;
-}
-
-.user-panel button {
-  width: 100%;
-  margin-top: 5px;
-  padding: 8px;
-  background-color: #ff7f50;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  cursor: pointer;
-}
-
-.user-panel button:hover {
-  background-color: #e67e22;
 }
 
 .avatar-preview {
-  display: block;
-  margin: 0 auto 10px;
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 2px solid white;
+  margin-bottom: 10px;
+  border: 2px solid #888;
   object-fit: cover;
 }
 
-/* SEKCJA NEWSÓW */
-.home-section {
-  flex: 1;
-  padding: 50px 0;
-  margin: 0 250px;
-}
-
-.news-item {
-  background: #fff;
-  padding: 20px;
-  margin-bottom: 20px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.news-meta {
-  font-size: 12px;
-  color: #666;
-  margin-top: 5px;
-}
-
-/* CZAT */
 .chat-box {
-  display: flex;
-  flex-direction: column;
-  background-color: #444;
+  margin-top: 20px;
+  background: #222;
+  border: 1px solid #555;
+  border-radius: 5px;
   padding: 10px;
-  border-radius: 10px;
-  color: white;
-  margin-bottom: 20px;
+  color: #eee;
 }
 
 #chat-window {
-  flex: 1;
+  height: 200px;
   overflow-y: auto;
-  background-color: #555;
-  padding: 10px;
-  height: 250px;
+  background: #111;
+  border: 1px solid #555;
   border-radius: 5px;
   margin-bottom: 10px;
+  padding: 10px;
 }
 
-.message-box div {
-  margin-bottom: 8px;
+.message-box {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
   flex-direction: column;
+  gap: 5px;
 }
 
-.message-box .chat-message {
-  background: #666;
-  padding: 8px;
-  border-radius: 6px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
+.message {
+  background: #333;
+  padding: 6px 10px;
+  border-radius: 4px;
+  word-wrap: break-word;
+  font-size: 0.9rem;
 }
 
-.message-box .chat-meta {
-  font-size: 11px;
-  color: #ccc;
-  margin-left: 42px;
+.message .author {
+  font-weight: bold;
+  margin-bottom: 3px;
+  color: #80c0ff;
 }
 
-.message-box img.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid white;
+.message .timestamp {
+  font-size: 0.7rem;
+  color: #999;
+  float: right;
 }
 
-#chat-input {
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  background-color: #666;
-  color: white;
-  margin-bottom: 10px;
+button:disabled {
+  background: #666 !important;
+  cursor: not-allowed;
 }
 
-#send-btn {
-  background-color: #ff7f50;
-  border: none;
-  padding: 10px;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
-}
-
-#send-btn:hover {
-  background-color: #e67e22;
-}
-
-/* PANEL ADMINA W MENU */
 .admin-panel {
-  background-color: #222;
-  color: white;
+  margin-top: 30px;
+  background: #2a2a2a;
   padding: 15px;
-  border-radius: 6px;
-  margin-top: 20px;
+  border-radius: 5px;
+  color: #eee;
 }
 
-.admin-panel h2, .admin-panel h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
+.admin-panel h2 {
+  margin-top: 0;
 }
 
-.admin-panel form input,
-.admin-panel form textarea {
+#news-form input, #news-form textarea {
   width: 100%;
-  margin-bottom: 10px;
+  margin: 8px 0;
   padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #aaa;
-}
-
-.admin-panel form button {
-  width: 100%;
-  background-color: #ff7f50;
-  padding: 8px;
+  border-radius: 3px;
   border: none;
-  border-radius: 4px;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+#news-form button {
+  background: #0066cc;
+  border: none;
   color: white;
+  padding: 10px 15px;
   cursor: pointer;
+  border-radius: 3px;
 }
 
-.admin-panel form button:hover {
-  background-color: #e67e22;
+#news-form button:hover {
+  background: #005bb5;
 }
 
-#chat-admin-list {
+.chat-admin-panel ul {
   list-style: none;
   padding: 0;
-  margin-top: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #555;
+  border-radius: 5px;
 }
 
-#chat-admin-list li {
-  background: #eee;
-  padding: 10px;
-  margin-bottom: 5px;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
+.chat-admin-panel ul li {
+  padding: 6px 8px;
+  border-bottom: 1px solid #444;
+  font-size: 0.85rem;
+  word-wrap: break-word;
 }
 
-#chat-admin-list button {
-  margin-left: 10px;
-  background-color: #ff4d4d;
-  font-size: 12px;
+.chat-admin-panel ul li:last-child {
+  border-bottom: none;
 }
 
-#chat-admin-list button:hover {
-  background-color: #d63031;
-}
-
-/* STOPKA */
 footer {
-  background-color: #333;
-  color: white;
-  text-align: center;
+  background: #111;
+  color: #888;
   padding: 15px 0;
-  margin-top: auto;
-  position: relative;
+  text-align: center;
+  position: fixed;
   bottom: 0;
   width: 100%;
+}
+
+@media screen and (max-width: 900px) {
+  .sidebar-left, .sidebar-right {
+    position: static;
+    width: 100%;
+    height: auto;
+  }
+
+  body {
+    padding-bottom: 60px;
+  }
 }
