@@ -5,19 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Strona Gry</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- Firebase SDK -->
-  <script type="module">
-    // Globalnie dostępny Firebase config - do użytku w script.js
-    window.firebaseConfig = {
-      apiKey: "AIzaSyAvZ2ZdDjDLisZbMOqHCbcDNK5rMsXCgy8",
-      authDomain: "strona-ed4f6.firebaseapp.com",
-      projectId: "strona-ed4f6",
-      storageBucket: "strona-ed4f6.appspot.com",
-      messagingSenderId: "101656150028",
-      appId: "1:101656150028:web:5830ca8a36c5b5250e6e29",
-      measurementId: "G-EWYZQPTM5Y"
-    };
-  </script>
 </head>
 <body>
 
@@ -55,7 +42,7 @@
         <a href="javascript:void(0);" id="login-link">Zaloguj się</a>
         <div id="login-form-section" class="form-inline" style="display:none;">
           <form id="login-form">
-            <input type="email" id="login-username" placeholder="Email" required />
+            <input type="email" id="login-email" placeholder="Email" required />
             <input type="password" id="login-password" placeholder="Hasło" required />
             <button type="submit">Zaloguj się</button>
             <button type="button" id="cancel-login">Anuluj</button>
@@ -122,7 +109,10 @@
     </div>
   </footer>
 
-  <!-- Firebase App + Auth + Firestore z CDN w module (zamiast skryptu inline, wszystko w script.js) -->
-  <script type="module" src="script.js"></script>
+  <!-- Firebase i skrypt -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
